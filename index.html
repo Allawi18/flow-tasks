@@ -471,9 +471,9 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><polyline points="4 14 4 21 20 21 20 14"/></svg>
         <span>تثبيت التطبيق</span>
       </button>
-      <a href="https://pwabuilder.com/create?url=https://allawi18.github.io/flow-tasks/" target="_blank" class="install-btn" id="apk-btn" rel="noopener">
-        <span>APK تحميل</span>
-      </a>
+      <button class="install-btn" id="apk-btn" onclick="downloadApk()">
+        <span id="apk-label">APK تحميل</span>
+      </button>
     </div>
   </div>
 </main>
@@ -872,6 +872,79 @@
   window.addEventListener('appinstalled', () => {
     installBtn.style.display = 'none';
   });
+
+  // ===== APK DIRECT DOWNLOAD =====
+  async function downloadApk() {
+    const label = $('apk-label');
+    label.textContent = 'جاري التجهيز...';
+    $('apk-btn').disabled = true;
+    try {
+      const options = {
+        additionalTrustedOrigins: [],
+        appVersion: '1.0.0.0',
+        appVersionCode: 1,
+        backgroundColor: '#6366f1',
+        display: 'standalone',
+        enableSiteSettingsShortcut: true,
+        enableNotifications: true,
+        includeSourceCode: false,
+        fallbackType: 'customtabs',
+        features: { locationDelegation: { enabled: true }, playBilling: { enabled: false } },
+        host: 'https://allawi18.github.io',
+        iconUrl: 'https://allawi18.github.io/flow-tasks/icon-512.png',
+        launcherName: 'Flow',
+        name: 'Flow',
+        maskableIconUrl: 'https://allawi18.github.io/flow-tasks/icon-192.png',
+        navigationColor: '#6366f1',
+        orientation: 'default',
+        packageId: 'com.flow.tasks',
+        pwaUrl: 'https://allawi18.github.io/flow-tasks/',
+        signingMode: 'none',
+        splashScreenFadeOutDuration: 300,
+        startUrl: 'https://allawi18.github.io/flow-tasks/',
+        themeColor: '#6366f1',
+        webManifestUrl: 'https://allawi18.github.io/flow-tasks/manifest.json'
+      };
+      const resp = await fetch('https://pwabuilder-cloudapk.azurewebsites.net/enqueuePackageJob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'platform-identifier': 'PWABuilder', 'platform-identifier-version': '1.0.0' },
+        body: JSON.stringify(options)
+      });
+      if (!resp.ok) throw new Error('فشل الاتصال بخدمة البناء');
+      const jobId = await resp.text();
+      label.textContent = 'جاري البناء...';
+      const poll = setInterval(async () => {
+        try {
+          const pollResp = await fetch('https://pwabuilder-cloudapk.azurewebsites.net/getPackageJob?id=' + encodeURIComponent(jobId));
+          if (!pollResp.ok) return;
+          const job = await pollResp.json();
+          if (job.status === 'Completed') {
+            clearInterval(poll);
+            label.textContent = 'جاري التحميل...';
+            const dlResp = await fetch('https://pwabuilder-cloudapk.azurewebsites.net/downloadPackageZip?id=' + encodeURIComponent(jobId));
+            if (dlResp.ok) {
+              const blob = await dlResp.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = 'Flow-APK.zip';
+              document.body.appendChild(a); a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              label.textContent = 'تم التحميل ✓';
+            } else throw new Error('فشل التحميل');
+          } else if (job.status === 'Failed') {
+            clearInterval(poll);
+            throw new Error('فشل البناء');
+          }
+        } catch(e) { /* keep polling */ }
+      }, 2000);
+    } catch(e) {
+      label.textContent = 'APK تحميل';
+      alert('تعذر بناء APK. استخدم رابط PWABuilder كبديل.');
+      window.open('https://pwabuilder.com/create?url=https://allawi18.github.io/flow-tasks/', '_blank');
+    }
+    $('apk-btn').disabled = false;
+  }
 
   // ===== INIT =====
   render();
