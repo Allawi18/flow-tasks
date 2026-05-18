@@ -1,0 +1,57 @@
+name: Build Android APK (TWA)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Generate signing keys
+        run: |
+          keytool -genkey -v -keystore app.keystore -alias flow -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass flow123 -keypass flow123 \
+            -dname "CN=Flow, O=Flow, L=Unknown, ST=Unknown, C=XX"
+
+      - name: Build TWA
+        run: |
+          bubblewrap init \
+            --manifest "https://allawi18.github.io/flow-tasks/manifest.json" \
+            --directory twa-build \
+            --jks app.keystore \
+            --jksPassword flow123 \
+            --alias flow \
+            --keyPassword flow123 \
+            --appVersionName "1.0.0" \
+            --appVersionCode 1
+
+      - name: Update TWA URL
+        run: |
+          cd twa-build
+          bubblewrap update --jks ../app.keystore --jksPassword flow123 --alias flow --keyPassword flow123
+
+      - name: Build APK
+        run: |
+          cd twa-build
+          bubblewrap build
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flow-Android-APK
+          path: twa-build/app/build/outputs/apk/release/*.apk
