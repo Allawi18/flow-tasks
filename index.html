@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow — Task Manager</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#f8f9fb;--surface:#fff;--surface-hover:#f3f4f6;--sidebar:#f0f1f3;
+    --border:#e9eaee;--border-light:#f0f1f3;
+    --text:#1a1a2e;--text-secondary:#6b7280;--text-muted:#9ca3af;
+    --accent:#6366f1;--accent-hover:#5558e6;--accent-soft:rgba(99,102,241,0.1);
+    --green:#22c55e;--green-soft:rgba(34,197,94,0.12);
+    --amber:#f59e0b;--amber-soft:rgba(245,158,11,0.12);
+    --red:#ef4444;--red-soft:rgba(239,68,68,0.12);
+    --shadow:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+    --shadow-lg:0 4px 20px rgba(0,0,0,.08);
+    --radius:12px;--radius-sm:8px;--radius-full:999px;
+    --transition:.2s cubic-bezier(.4,0,.2,1)
+  }
+  .dark{--bg:#0f0f1a;--surface:#1a1a2e;--surface-hover:#232340;--sidebar:#151525;
+    --border:#2a2a45;--border-light:#1f1f35;
+    --text:#e8e8f0;--text-secondary:#9ca3b8;--text-muted:#6b7280;
+    --accent:#818cf8;--accent-hover:#6d78f0;--accent-soft:rgba(129,140,248,0.12);
+    --green:#4ade80;--green-soft:rgba(74,222,128,0.12);
+    --amber:#fbbf24;--amber-soft:rgba(251,191,36,0.12);
+    --red:#f87171;--red-soft:rgba(248,113,113,0.12);
+    --shadow:0 1px 3px rgba(0,0,0,.2),0 1px 2px rgba(0,0,0,.3);
+    --shadow-lg:0 4px 24px rgba(0,0,0,.4);
+  }
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,'Noto Sans Arabic',sans-serif;
+    background:var(--bg);color:var(--text);display:flex;height:100vh;
+    transition:background var(--transition),color var(--transition)
+  }
+  ::selection{background:var(--accent);color:#fff}
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--text-muted);border-radius:99px}
+
+  /* SIDEBAR */
+  .sidebar{
+    width:260px;background:var(--sidebar);border-left:1px solid var(--border);
+    display:flex;flex-direction:column;padding:20px 14px;flex-shrink:0;
+    transition:background var(--transition),border var(--transition);
+    height:100vh;position:sticky;top:0;
+  }
+  .logo{
+    font-size:20px;font-weight:700;letter-spacing:-.5px;
+    display:flex;align-items:center;gap:10px;padding:0 6px 24px;
+  }
+  .logo span{background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .nav-section{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);padding:16px 6px 6px}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);
+    color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all var(--transition);
+    border:none;background:none;width:100%;text-align:right;font-family:inherit
+  }
+  .nav-item:hover{background:var(--surface-hover);color:var(--text)}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .nav-item .icon{font-size:16px;width:22px;text-align:center}
+  .nav-item .badge{
+    margin-right:auto;background:var(--border);padding:1px 8px;border-radius:var(--radius-full);
+    font-size:11px;color:var(--text-secondary);
+  }
+  .nav-item.active .badge{background:var(--accent);color:#fff}
+  .sidebar-spacer{flex:1}
+  .theme-toggle{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);
+    color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all var(--transition);
+    border:none;background:none;width:100%;text-align:right;font-family:inherit;margin-top:8px
+  }
+  .theme-toggle:hover{background:var(--surface-hover);color:var(--text)}
+  .sidebar-stats{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:16px 0 0;
+    border-top:1px solid var(--border);margin-top:8px;
+  }
+  .stat-card{
+    text-align:center;padding:8px 4px;border-radius:var(--radius-sm);
+    background:var(--surface);transition:background var(--transition);
+  }
+  .stat-card .num{font-size:18px;font-weight:700;line-height:1.2}
+  .stat-card .label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}
+
+  /* MAIN */
+  .main{flex:1;display:flex;flex-direction:column;max-width:900px;margin:0 auto;width:100%;padding:0 32px}
+  .main-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:28px 0 20px;border-bottom:1px solid var(--border);
+  }
+  .main-header h1{font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .main-header-actions{display:flex;align-items:center;gap:8px}
+  .search-box{
+    display:flex;align-items:center;gap:8px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-full);padding:6px 14px;width:220px;
+    transition:all var(--transition);
+  }
+  .search-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);width:280px}
+  .search-box input{
+    border:none;background:none;outline:none;color:var(--text);font-size:13px;
+    width:100%;font-family:inherit;
+  }
+  .search-box input::placeholder{color:var(--text-muted)}
+  .search-box .icon{color:var(--text-muted);font-size:14px}
+  .add-btn{
+    width:36px;height:36px;border-radius:50%;border:none;
+    background:var(--accent);color:#fff;font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all var(--transition);flex-shrink:0;
+  }
+  .add-btn:hover{background:var(--accent-hover);transform:scale(1.05);box-shadow:0 4px 14px rgba(99,102,241,.35)}
+
+  /* INPUT BAR */
+  .input-bar{
+    display:flex;align-items:center;gap:12px;margin:18px 0;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:8px 12px 8px 16px;
+    transition:all var(--transition);box-shadow:var(--shadow);
+  }
+  .input-bar:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
+  .input-bar input{
+    flex:1;border:none;background:none;outline:none;color:var(--text);
+    font-size:14px;font-family:inherit;
+  }
+  .input-bar input::placeholder{color:var(--text-muted)}
+  .input-actions{display:flex;align-items:center;gap:6px}
+  .input-actions select{
+    border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);
+    border-radius:var(--radius-sm);padding:5px 8px;font-size:11px;cursor:pointer;
+    font-family:inherit;outline:none;transition:border var(--transition);
+  }
+  .input-actions select option{background:var(--surface);color:var(--text)}
+  .input-actions select:focus{border-color:var(--accent)}
+  .input-actions input[type=date]{
+    border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);
+    border-radius:var(--radius-sm);padding:5px 8px;font-size:11px;cursor:pointer;
+    font-family:inherit;outline:none;
+  }
+  .input-add-btn{
+    background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);
+    padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer;
+    transition:all var(--transition);font-family:inherit;
+  }
+  .input-add-btn:hover{background:var(--accent-hover)}
+
+  /* TASKS */
+  .tasks-wrap{flex:1;overflow-y:auto;padding-bottom:60px;min-height:0}
+  .tasks-wrap.drag-over{border:2px dashed var(--accent);border-radius:var(--radius);background:var(--accent-soft)}
+  .empty-state{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:80px 20px;color:var(--text-muted);text-align:center;
+  }
+  .empty-state .icon{font-size:48px;margin-bottom:16px;opacity:.5}
+  .empty-state h3{font-size:18px;color:var(--text-secondary);margin-bottom:6px}
+  .empty-state p{font-size:13px}
+
+  /* TASK CARD */
+  .task-card{
+    display:flex;align-items:center;gap:12px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;
+    transition:all var(--transition);box-shadow:var(--shadow);
+    cursor:default;position:relative;
+  }
+  .task-card:hover{border-color:var(--accent);box-shadow:var(--shadow-lg)}
+  .task-card.dragging{opacity:.5;transform:rotate(2deg)}
+  .task-card.drag-over{border-color:var(--accent);border-style:dashed;background:var(--accent-soft)}
+  .task-card.pinned{
+    border-color:var(--amber);background:var(--amber-soft);
+  }
+  .task-card.pinned:hover{border-color:var(--amber);box-shadow:0 4px 20px rgba(245,158,11,.15)}
+  .task-card.done{opacity:.7}
+  .task-card.done .task-text{text-decoration:line-through;color:var(--text-muted)}
+
+  .drag-handle{
+    cursor:grab;color:var(--text-muted);font-size:16px;opacity:0;
+    transition:opacity var(--transition);user-select:none;
+    line-height:1;padding:2px;
+  }
+  .task-card:hover .drag-handle{opacity:.6}
+  .drag-handle:active{cursor:grabbing}
+
+  .task-check{
+    width:20px;height:20px;border-radius:50%;border:2px solid var(--border);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:all var(--transition);flex-shrink:0;background:transparent;
+    position:relative;
+  }
+  .task-check:hover{border-color:var(--accent)}
+  .task-card.done .task-check{
+    background:var(--green);border-color:var(--green);
+  }
+  .task-card.done .task-check::after{
+    content:'✓';color:#fff;font-size:12px;font-weight:700;
+  }
+
+  .task-content{flex:1;min-width:0}
+  .task-text{font-size:14px;font-weight:450;line-height:1.4;word-break:break-word}
+  .task-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .task-priority{
+    font-size:10px;font-weight:600;padding:1px 8px;border-radius:var(--radius-full);
+    text-transform:uppercase;letter-spacing:.3px;
+  }
+  .priority-low{background:var(--green-soft);color:var(--green)}
+  .priority-medium{background:var(--amber-soft);color:var(--amber)}
+  .priority-high{background:var(--red-soft);color:var(--red)}
+  .task-tag{
+    font-size:10px;padding:1px 8px;border-radius:var(--radius-full);
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .task-due{
+    font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;
+  }
+  .task-due.overdue{color:var(--red);font-weight:500}
+
+  .task-actions{
+    display:flex;align-items:center;gap:4px;opacity:0;
+    transition:opacity var(--transition);
+  }
+  .task-card:hover .task-actions{opacity:1}
+  .task-action-btn{
+    width:30px;height:30px;border-radius:var(--radius-sm);border:none;
+    background:transparent;color:var(--text-muted);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all var(--transition);font-size:15px;
+  }
+  .task-action-btn:hover{background:var(--surface-hover);color:var(--text)}
+  .task-action-btn.delete:hover{background:var(--red-soft);color:var(--red)}
+  .task-action-btn.pin-btn:hover{background:var(--amber-soft);color:var(--amber)}
+  .task-action-btn.pin-btn.active{color:var(--amber);opacity:1}
+
+  /* ANIMATION */
+  .task-card-enter{animation:slideIn .3s cubic-bezier(.4,0,.2,1)}
+  @keyframes slideIn{
+    from{opacity:0;transform:translateY(-10px) scale(.98)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+  .task-card-exit{animation:slideOut .25s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes slideOut{
+    to{opacity:0;transform:translateX(-20px) scale(.95);height:0;margin:0;padding:0;border:0;overflow:hidden}
+  }
+
+  /* RESPONSIVE */
+  @media(max-width:768px){
+    .sidebar{width:60px;padding:14px 8px}
+    .sidebar .logo span,.sidebar .nav-item span:not(.icon),.nav-section,.theme-toggle span,.sidebar-stats{display:none}
+    .sidebar .nav-item{justify-content:center;padding:10px}
+    .main{padding:0 16px}
+    .search-box{width:140px}
+    .search-box:focus-within{width:180px}
+    .input-actions select,.input-actions input[type=date]{max-width:80px;font-size:10px}
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo"><div class="logo-dot"></div><span>Flow</span></div>
+
+  <div class="nav-section">التنقل</div>
+  <button class="nav-item active" data-filter="all" onclick="setFilter('all')">
+    <span class="icon">📋</span><span>الكل</span><span class="badge" id="badge-all">0</span>
+  </button>
+  <button class="nav-item" data-filter="done" onclick="setFilter('done')">
+    <span class="icon">✅</span><span>المنجز</span><span class="badge" id="badge-done">0</span>
+  </button>
+  <button class="nav-item" data-filter="not_done" onclick="setFilter('not_done')">
+    <span class="icon">⏳</span><span>غير المنجز</span><span class="badge" id="badge-not_done">0</span>
+  </button>
+  <button class="nav-item" data-filter="pinned" onclick="setFilter('pinned')">
+    <span class="icon">📌</span><span>المثبت</span><span class="badge" id="badge-pinned">0</span>
+  </button>
+
+  <div class="nav-section">الوسوم</div>
+  <div id="tags-list"></div>
+
+  <div class="sidebar-spacer"></div>
+
+  <button class="theme-toggle" onclick="toggleTheme()">
+    <span class="icon" id="theme-icon">🌙</span><span id="theme-label">داكن</span>
+  </button>
+
+  <div class="sidebar-stats">
+    <div class="stat-card"><div class="num" id="stat-total">0</div><div class="label">الكل</div></div>
+    <div class="stat-card"><div class="num" id="stat-done">0</div><div class="label">منجز</div></div>
+    <div class="stat-card"><div class="num" id="stat-not-done">0</div><div class="label">متبقي</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="main-header">
+    <h1 id="main-title">الكل</h1>
+    <div class="main-header-actions">
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="search" placeholder="بحث..." oninput="renderTasks()">
+      </div>
+      <button class="add-btn" onclick="focusInput()" title="إضافة مهمة">+</button>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-bar">
+    <input type="text" id="task-input" placeholder="أضف مهمة جديدة..." onkeydown="if(event.key==='Enter')addTask()">
+    <div class="input-actions">
+      <select id="priority-select">
+        <option value="low">🟢 عادي</option>
+        <option value="medium" selected>🟡 متوسط</option>
+        <option value="high">🔴 عاجل</option>
+      </select>
+      <input type="date" id="due-date">
+      <button class="input-add-btn" onclick="addTask()">إضافة</button>
+    </div>
+  </div>
+
+  <!-- TASKS -->
+  <div class="tasks-wrap" id="tasks-wrap"></div>
+</main>
+
+<script>
+// ===== STATE =====
+let tasks = JSON.parse(localStorage.getItem('flow_tasks') || '[]');
+let filter = 'all';
+let searchQuery = '';
+let tagFilter = null;
+let dragging = null;
+let dragOver = null;
+
+// ===== PERSISTENCE =====
+function save(){localStorage.setItem('flow_tasks',JSON.stringify(tasks))}
+
+// ===== CRUD =====
+function addTask(){
+  const input=document.getElementById('task-input');
+  const text=input.value.trim();
+  if(!text) return;
+  const priority=document.getElementById('priority-select').value;
+  const dueDate=document.getElementById('due-date').value||null;
+  tasks.push({
+    id:Date.now()+Math.random(),text,done:false,pinned:false,
+    priority,dueDate,tags:[],createdAt:Date.now()
+  });
+  input.value='';document.getElementById('due-date').value='';
+  save();renderTasks();
+  setTimeout(()=>document.querySelector('.task-card:last-child')?.scrollIntoView({behavior:'smooth',block:'center'}),50);
+}
+
+function toggleDone(id){
+  const t=tasks.find(x=>x.id===id);
+  if(t){t.done=!t.done;save();renderTasks()}
+}
+
+function togglePin(id){
+  const t=tasks.find(x=>x.id===id);
+  if(t){t.pinned=!t.pinned;save();renderTasks()}
+}
+
+function deleteTask(id){
+  const card=document.querySelector(`[data-id="${id}"]`);
+  if(card)card.classList.add('task-card-exit');
+  setTimeout(()=>{
+    tasks=tasks.filter(x=>x.id!==id);
+    save();renderTasks();
+  },250);
+}
+
+function setFilter(f){
+  filter=f;tagFilter=null;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.filter===f));
+  document.getElementById('main-title').textContent={
+    all:'الكل',done:'المنجز',not_done:'غير المنجز',pinned:'المثبت'
+  }[f]||'الكل';
+  renderTasks();
+}
+
+function setTagFilter(tag){
+  tagFilter=tag;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.tag-nav-item').forEach(n=>n.classList.toggle('active',n.dataset.tag===tag));
+  document.getElementById('main-title').textContent=`#${tag}`;
+  renderTasks();
+}
+
+// ===== THEME =====
+function toggleTheme(){
+  document.body.classList.toggle('dark');
+  const isDark=document.body.classList.contains('dark');
+  document.getElementById('theme-icon').textContent=isDark?'☀️':'🌙';
+  document.getElementById('theme-label').textContent=isDark?'فاتح':'داكن';
+  localStorage.setItem('flow_theme',isDark?'dark':'light');
+}
+if(localStorage.getItem('flow_theme')==='dark'){document.body.classList.add('dark');
+  document.getElementById('theme-icon').textContent='☀️';document.getElementById('theme-label').textContent='فاتح';}
+
+// ===== FILTER LOGIC =====
+function filteredTasks(){
+  let result=[...tasks];
+  if(filter==='done')result=result.filter(t=>t.done);
+  else if(filter==='not_done')result=result.filter(t=>!t.done);
+  else if(filter==='pinned')result=result.filter(t=>t.pinned);
+  if(tagFilter)result=result.filter(t=>t.tags&&t.tags.includes(tagFilter));
+  if(searchQuery=document.getElementById('search').value.trim().toLowerCase()){
+    result=result.filter(t=>t.text.toLowerCase().includes(searchQuery));
+  }
+  return result.sort((a,b)=>b.pinned-a.pinned||a.createdAt-b.createdAt);
+}
+
+// ===== RENDER =====
+function renderTasks(){
+  const wrap=document.getElementById('tasks-wrap');
+  const items=filteredTasks();
+  const allTags=[...new Set(tasks.flatMap(t=>t.tags||[]))];
+
+  // Sidebar tags
+  const tagsList=document.getElementById('tags-list');
+  if(allTags.length){
+    tagsList.innerHTML=allTags.map(tag=>`
+      <button class="nav-item tag-nav-item" data-tag="${tag}" onclick="setTagFilter('${tag}')">
+        <span class="icon">🏷️</span><span>${tag}</span>
+      </button>
+    `).join('');
+  }else tagsList.innerHTML='<div style="font-size:11px;color:var(--text-muted);padding:4px 10px">لا توجد وسوم</div>';
+
+  // Badges
+  document.getElementById('badge-all').textContent=tasks.length;
+  document.getElementById('badge-done').textContent=tasks.filter(t=>t.done).length;
+  document.getElementById('badge-not_done').textContent=tasks.filter(t=>!t.done).length;
+  document.getElementById('badge-pinned').textContent=tasks.filter(t=>t.pinned).length;
+
+  // Stats
+  document.getElementById('stat-total').textContent=tasks.length;
+  document.getElementById('stat-done').textContent=tasks.filter(t=>t.done).length;
+  document.getElementById('stat-not-done').textContent=tasks.filter(t=>!t.done).length;
+
+  if(!items.length){
+    wrap.innerHTML=`
+      <div class="empty-state">
+        <div class="icon">✨</div>
+        <h3>لا توجد مهام</h3>
+        <p>${searchQuery?'لا نتائج للبحث':'أضف مهمة جديدة للبدء'}</p>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML=items.map(t=>{
+    const today=new Date();today.setHours(0,0,0,0);
+    const due=t.dueDate?new Date(t.dueDate+'T00:00:00'):null;
+    const overdue=due&&due<today&&!t.done;
+    const dueLabel=t.dueDate?new Date(t.dueDate+'T00:00:00').toLocaleDateString('ar-SA',{day:'numeric',month:'short'}):'';
+    const pClass=t.priority==='high'?'priority-high':t.priority==='medium'?'priority-medium':'priority-low';
+    const pLabel=t.priority==='high'?`عاجل`:t.priority==='medium'?`متوسط`:`عادي`;
+
+    return `
+      <div class="task-card ${t.done?'done':''} ${t.pinned?'pinned':''}" draggable="true" data-id="${t.id}"
+           ondragstart="dragStart(event,${t.id})" ondragover="dragOver(event,${t.id})" ondrop="drop(event,${t.id})"
+           ondragend="dragEnd()">
+        <span class="drag-handle" draggable="false">⠿</span>
+        <div class="task-check" onclick="toggleDone(${t.id})"></div>
+        <div class="task-content">
+          <div class="task-text">${t.text}</div>
+          <div class="task-meta">
+            <span class="task-priority ${pClass}">${pLabel}</span>
+            ${(t.tags||[]).map(tag=>`<span class="task-tag">${tag}</span>`).join('')}
+            ${t.dueDate?`<span class="task-due ${overdue?'overdue':''}">📅 ${dueLabel}${overdue?' (متأخر)':''}</span>`:''}
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="task-action-btn pin-btn ${t.pinned?'active':''}" onclick="togglePin(${t.id})" title="${t.pinned?'إلغاء التثبيت':'تثبيت'}">📌</button>
+          <button class="task-action-btn" onclick="promptTag(${t.id})" title="إضافة وسم">🏷️</button>
+          <button class="task-action-btn delete" onclick="deleteTask(${t.id})" title="حذف">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ===== DRAG & DROP =====
+function dragStart(e,id){
+  dragging=id;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',id);
+}
+
+function dragOver(e,id){
+  e.preventDefault();
+  if(dragOver===id)return;
+  if(dragOver!==null){
+    const prev=document.querySelector(`[data-id="${dragOver}"]`);
+    if(prev)prev.classList.remove('drag-over');
+  }
+  dragOver=id;
+  e.target.closest('.task-card')?.classList.add('drag-over');
+}
+
+function drop(e,id){
+  e.preventDefault();
+  if(dragging===null||dragging===id)return;
+  const fromIdx=tasks.findIndex(t=>t.id===dragging);
+  const toIdx=tasks.findIndex(t=>t.id===id);
+  if(fromIdx>-1&&toIdx>-1){
+    const [moved]=tasks.splice(fromIdx,1);
+    tasks.splice(toIdx,0,moved);
+    save();renderTasks();
+  }
+  dragEnd();
+}
+
+function dragEnd(){
+  document.querySelectorAll('.dragging,.drag-over').forEach(el=>el.classList.remove('dragging','drag-over'));
+  dragging=null;dragOver=null;
+}
+
+// ===== TAGS =====
+function promptTag(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t)return;
+  const tag=prompt('أدخل اسم الوسم:',(t.tags||[])[0]||'');
+  if(tag!==null){
+    if(!t.tags)t.tags=[];
+    const idx=t.tags.indexOf(tag.trim());
+    if(idx>-1)t.tags.splice(idx,1);
+    else t.tags=[tag.trim()];
+    save();renderTasks();
+  }
+}
+
+function focusInput(){document.getElementById('task-input').focus()}
+
+// ===== INIT =====
+renderTasks();
+</script>
+</body>
+</html>
