@@ -419,7 +419,7 @@
         <label>الوقت</label>
         <input type="time" id="due-time">
       </div>
-      <button class="input-add-btn" onclick="addTask()">إضافة</button>
+      <button class="input-add-btn">إضافة</button>
     </div>
   </div>
 
@@ -715,14 +715,14 @@
   // ===== NOTIFICATIONS =====
   function requestNotifPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+      Notification.requestPermission().catch(function(){});
     }
   }
 
   function sendNotif(title, body) {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') {
-      try { new Notification(title, { body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>' }); } catch(e) {}
+      try { new Notification(title, { body }); } catch(e) { console.error(e); }
     }
   }
 
@@ -738,19 +738,18 @@
 
       if (!t.notified30 && now >= diff30 && now < dueMs) {
         t.notified30 = true;
-        sendNotif('⏰ تذكير بقرب المهمة', `متبقي ٣٠ دقيقة على: "${t.text}"`);
+        sendNotif('⏰ تذكير بقرب المهمة', 'متبقي ٣٠ دقيقة على: "' + t.text + '"');
         save();
       }
       if (!t.notified10 && now >= diff10 && now < dueMs) {
         t.notified10 = true;
-        sendNotif('⏰ تذكير أخير', `متبقي ١٠ دقائق فقط على: "${t.text}"`);
+        sendNotif('⏰ تذكير أخير', 'متبقي ١٠ دقائق فقط على: "' + t.text + '"');
         save();
       }
     });
   }
 
-  // Request permission & start checker
-  requestNotifPermission();
+  // Start notification checker
   checkNotifications();
   setInterval(checkNotifications, 30000);
 
