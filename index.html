@@ -153,6 +153,23 @@
     padding-right:6px;padding-left:26px;text-align:right;
     direction:ltr;
   }
+  .priority-chip-group{
+    display:flex;gap:4px;direction:ltr;
+  }
+  .priority-chip{
+    flex:1;border:1px solid var(--border);background:var(--surface-hover);
+    color:var(--text-secondary);border-radius:var(--radius-sm);
+    padding:8px 6px;font-size:11px;font-weight:500;cursor:pointer;
+    font-family:inherit;transition:all var(--transition);
+    text-align:center;min-height:36px;white-space:nowrap;
+  }
+  .priority-chip:hover{background:var(--border);color:var(--text);border-color:var(--text-muted)}
+  .priority-chip.active{
+    border-color:var(--accent);background:var(--accent-soft);color:var(--accent);
+    box-shadow:0 0 0 2px var(--accent-soft);transform:scale(1.02);
+  }
+  .priority-chip[data-value="high"].active{border-color:var(--red);color:var(--red);background:var(--red-soft);box-shadow:0 0 0 2px var(--red-soft)}
+  .priority-chip[data-value="low"].active{border-color:var(--green);color:var(--green);background:var(--green-soft);box-shadow:0 0 0 2px var(--green-soft)}
   .dark .input-group select,
   .dark .input-group input[type=date],
   .dark .input-group input[type=time]{
@@ -278,32 +295,21 @@
     to{opacity:0;transform:translateX(-20px) scale(.95);height:0;margin:0;padding:0;border:0;overflow:hidden}
   }
 
-  /* ===== INSTALL SECTION ===== */
-  .install-section{padding:20px 0 40px}
-  .install-card{
-    display:flex;align-items:center;gap:12px;
-    background:linear-gradient(135deg,var(--accent-soft),transparent);
-    border:1px solid var(--border);border-radius:var(--radius);
-    padding:14px 16px;box-shadow:var(--shadow);
-  }
-  .install-icon{font-size:26px;flex-shrink:0}
-  .install-info{flex:1}
-  .install-info strong{display:block;font-size:13px;color:var(--text)}
-  .install-info span{font-size:11px;color:var(--text-muted)}
+  /* ===== INSTALL BUTTON ===== */
+  .install-section{padding:20px 0 40px;text-align:center}
   .install-btn{
-    display:flex;align-items:center;gap:5px;
-    background:var(--accent);color:#fff;border:none;
-    border-radius:var(--radius-sm);padding:8px 14px;
-    font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;
+    display:inline-flex;align-items:center;gap:8px;
+    background:linear-gradient(135deg,var(--accent),#a78bfa);color:#fff;border:none;
+    border-radius:var(--radius-full);padding:12px 28px;
+    font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;
     transition:all var(--transition);white-space:nowrap;font-family:inherit;
+    box-shadow:0 4px 15px rgba(99,102,241,.3);
   }
-  .install-btn:hover{background:var(--accent-hover);transform:scale(1.02)}
-  .install-btn:active{transform:scale(.98)}
+  .install-btn:hover{background:var(--accent-hover);transform:translateY(-2px);box-shadow:0 6px 20px rgba(99,102,241,.4)}
+  .install-btn:active{transform:translateY(0)}
   @media(max-width:768px){
-    .install-section{padding:12px 0 20px}
-    .install-card{flex-wrap:wrap;gap:8px}
-    .install-btn{flex:1;justify-content:center;padding:10px;font-size:13px}
-    .install-icon{display:none}
+    .install-section{padding:12px 0 24px}
+    .install-btn{padding:14px 24px;font-size:15px;width:100%;justify-content:center}
   }
 
   /* ===== MOBILE theme toggle ===== */
@@ -353,6 +359,7 @@
       font-size:13px;padding:10px 8px 10px 24px;min-height:42px;min-width:0;
       background-size:12px;background-position:left 4px center;
     }
+    .priority-chip{font-size:12px;padding:10px 4px;min-height:42px}
     .input-group input[type=date]{min-width:0}
     .input-group input[type=time]{min-width:0}
     .input-add-btn{font-size:13px;padding:10px 12px;min-height:42px;white-space:nowrap}
@@ -438,10 +445,15 @@
     <div class="input-actions">
       <div class="input-group">
         <label>الأولوية</label>
-        <select id="priority-select">
-          <option value="low">🟢 عادي</option>
-          <option value="medium" selected>🟡 متوسط</option>
-          <option value="high">🔴 عاجل</option>
+        <div class="priority-chip-group" id="priority-group">
+          <button class="priority-chip" data-value="low" type="button">🟢 عادي</button>
+          <button class="priority-chip active" data-value="medium" type="button">🟡 متوسط</button>
+          <button class="priority-chip" data-value="high" type="button">🔴 عاجل</button>
+        </div>
+        <select id="priority-select" hidden>
+          <option value="low">عادي</option>
+          <option value="medium" selected>متوسط</option>
+          <option value="high">عاجل</option>
         </select>
       </div>
       <div class="input-group">
@@ -459,22 +471,12 @@
   <!-- TASKS -->
   <div class="tasks-wrap" id="tasks-wrap"></div>
 
-  <!-- INSTALL / DOWNLOAD -->
+  <!-- INSTALL -->
   <div class="install-section">
-    <div class="install-card" id="install-card">
-      <span class="install-icon">📱</span>
-      <div class="install-info">
-        <strong>استخدم Flow كتطبيق</strong>
-        <span>أضفه للشاشة الرئيسية واستمتع بتجربة أسرع</span>
-      </div>
-      <button class="install-btn" id="install-btn" style="display:none">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><polyline points="4 14 4 21 20 21 20 14"/></svg>
-        <span>تثبيت التطبيق</span>
-      </button>
-      <button class="install-btn" id="apk-btn" onclick="downloadApk()">
-        <span id="apk-label">APK تحميل</span>
-      </button>
-    </div>
+    <button class="install-btn" id="install-btn" style="display:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><polyline points="4 14 4 21 20 21 20 14"/></svg>
+      <span>تثبيت التطبيق على الجهاز</span>
+    </button>
   </div>
 </main>
 <button class="theme-toggle mobile-only" id="theme-toggle-mobile">
@@ -502,6 +504,7 @@
   const searchInput = $('search');
   const taskInput = $('task-input');
   const prioritySelect = $('priority-select');
+  const priorityGroup = $('priority-group');
   const dueDateInput = $('due-date');
   const dueTimeInput = $('due-time');
   const mainTitle = $('main-title');
@@ -664,7 +667,8 @@
 
     wrap.innerHTML = items.map(t => {
       const now = new Date();
-      const dueDateTime = t.dueDateTime ? new Date(t.dueDateTime) : null;
+      const hasDue = t.dueDate || t.dueTime || t.dueDateTime;
+      const dueDateTime = t.dueDateTime ? new Date(t.dueDateTime) : (t.dueDate ? new Date(t.dueDate + 'T' + (t.dueTime || '23:59')) : null);
       const overdue = dueDateTime && dueDateTime < now && !t.done;
       const dateLabel = t.dueDate ? new Date(t.dueDate + 'T00:00:00').toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' }) : '';
       const timeLabel = t.dueTime || '';
@@ -681,7 +685,7 @@
             <div class="task-meta">
               <span class="task-priority ${pClass}">${pLabel}</span>
               ${(t.tags || []).map(tag => `<span class="task-tag">${tag}</span>`).join('')}
-              ${t.dueDateTime ? `<span class="task-due ${overdue ? 'overdue' : ''}">⏰ ${dueLabel}${overdue ? ' (متأخر)' : ''}</span>` : ''}
+              ${hasDue ? `<span class="task-due ${overdue ? 'overdue' : ''}">⏰ ${dueLabel}${overdue ? ' (متأخر)' : ''}</span>` : ''}
             </div>
           </div>
           <div class="task-actions">
@@ -851,6 +855,15 @@
   document.querySelector('.input-add-btn').addEventListener('click', window.addTask);
   taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.addTask(); });
 
+  // Priority chips
+  priorityGroup.querySelectorAll('.priority-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      priorityGroup.querySelectorAll('.priority-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      prioritySelect.value = chip.dataset.value;
+    });
+  });
+
   // Search
   searchInput.addEventListener('input', render);
 
@@ -872,79 +885,6 @@
   window.addEventListener('appinstalled', () => {
     installBtn.style.display = 'none';
   });
-
-  // ===== APK DIRECT DOWNLOAD =====
-  async function downloadApk() {
-    const label = $('apk-label');
-    label.textContent = 'جاري التجهيز...';
-    $('apk-btn').disabled = true;
-    try {
-      const options = {
-        additionalTrustedOrigins: [],
-        appVersion: '1.0.0.0',
-        appVersionCode: 1,
-        backgroundColor: '#6366f1',
-        display: 'standalone',
-        enableSiteSettingsShortcut: true,
-        enableNotifications: true,
-        includeSourceCode: false,
-        fallbackType: 'customtabs',
-        features: { locationDelegation: { enabled: true }, playBilling: { enabled: false } },
-        host: 'https://allawi18.github.io',
-        iconUrl: 'https://allawi18.github.io/flow-tasks/icon-512.png',
-        launcherName: 'Flow',
-        name: 'Flow',
-        maskableIconUrl: 'https://allawi18.github.io/flow-tasks/icon-192.png',
-        navigationColor: '#6366f1',
-        orientation: 'default',
-        packageId: 'com.flow.tasks',
-        pwaUrl: 'https://allawi18.github.io/flow-tasks/',
-        signingMode: 'none',
-        splashScreenFadeOutDuration: 300,
-        startUrl: 'https://allawi18.github.io/flow-tasks/',
-        themeColor: '#6366f1',
-        webManifestUrl: 'https://allawi18.github.io/flow-tasks/manifest.json'
-      };
-      const resp = await fetch('https://pwabuilder-cloudapk.azurewebsites.net/enqueuePackageJob', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'platform-identifier': 'PWABuilder', 'platform-identifier-version': '1.0.0' },
-        body: JSON.stringify(options)
-      });
-      if (!resp.ok) throw new Error('فشل الاتصال بخدمة البناء');
-      const jobId = await resp.text();
-      label.textContent = 'جاري البناء...';
-      const poll = setInterval(async () => {
-        try {
-          const pollResp = await fetch('https://pwabuilder-cloudapk.azurewebsites.net/getPackageJob?id=' + encodeURIComponent(jobId));
-          if (!pollResp.ok) return;
-          const job = await pollResp.json();
-          if (job.status === 'Completed') {
-            clearInterval(poll);
-            label.textContent = 'جاري التحميل...';
-            const dlResp = await fetch('https://pwabuilder-cloudapk.azurewebsites.net/downloadPackageZip?id=' + encodeURIComponent(jobId));
-            if (dlResp.ok) {
-              const blob = await dlResp.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url; a.download = 'Flow-APK.zip';
-              document.body.appendChild(a); a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              label.textContent = 'تم التحميل ✓';
-            } else throw new Error('فشل التحميل');
-          } else if (job.status === 'Failed') {
-            clearInterval(poll);
-            throw new Error('فشل البناء');
-          }
-        } catch(e) { /* keep polling */ }
-      }, 2000);
-    } catch(e) {
-      label.textContent = 'APK تحميل';
-      alert('تعذر بناء APK. استخدم رابط PWABuilder كبديل.');
-      window.open('https://pwabuilder.com/create?url=https://allawi18.github.io/flow-tasks/', '_blank');
-    }
-    $('apk-btn').disabled = false;
-  }
 
   // ===== INIT =====
   render();
