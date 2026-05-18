@@ -310,21 +310,56 @@
     to{opacity:0;transform:translateX(-20px) scale(.95);height:0;margin:0;padding:0;border:0;overflow:hidden}
   }
 
-  /* ===== INSTALL BUTTON ===== */
-  .install-section{padding:20px 0 40px;text-align:center}
-  .install-btn{
-    display:inline-flex;align-items:center;gap:8px;
-    background:linear-gradient(135deg,var(--accent),#a78bfa);color:#fff;border:none;
-    border-radius:var(--radius-full);padding:12px 28px;
-    font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;
-    transition:all var(--transition);white-space:nowrap;font-family:inherit;
-    box-shadow:0 4px 15px rgba(99,102,241,.3);
+  /* ===== INSTALL CARD ===== */
+  .install-section{padding:8px 0 40px}
+  .install-card{
+    background:linear-gradient(135deg,var(--accent-soft),rgba(167,139,250,.08));
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px;display:flex;align-items:center;gap:14px;
+    box-shadow:var(--shadow);position:relative;
+    animation:fadeInUp .4s ease;
   }
-  .install-btn:hover{background:var(--accent-hover);transform:translateY(-2px);box-shadow:0 6px 20px rgba(99,102,241,.4)}
+  .install-card.hidden{display:none}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .install-card-icon{
+    width:44px;height:44px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--accent),#a78bfa);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 3px 10px rgba(99,102,241,.3);
+  }
+  .install-card-icon svg{width:24px;height:24px;color:#fff}
+  .install-card-body{flex:1;min-width:0}
+  .install-card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+  .install-card-desc{font-size:12px;color:var(--text-secondary);line-height:1.4}
+  .install-card-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .install-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    background:linear-gradient(135deg,var(--accent),#a78bfa);color:#fff;border:none;
+    border-radius:var(--radius-sm);padding:10px 18px;
+    font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;
+    transition:all var(--transition);white-space:nowrap;font-family:inherit;
+    box-shadow:0 3px 10px rgba(99,102,241,.3);
+  }
+  .install-btn:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 5px 16px rgba(99,102,241,.4)}
   .install-btn:active{transform:translateY(0)}
+  .install-btn svg{width:16px;height:16px}
+  .install-dismiss{
+    width:28px;height:28px;border-radius:50%;border:none;background:var(--surface-hover);
+    color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-size:16px;transition:all var(--transition);flex-shrink:0;
+  }
+  .install-dismiss:hover{background:var(--border);color:var(--text)}
+  .install-alt{
+    font-size:11px;color:var(--text-muted);text-align:center;
+    padding:8px 0 2px;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .install-alt code{background:var(--surface-hover);padding:3px 8px;border-radius:6px;font-size:10px;color:var(--text-secondary);direction:ltr;display:inline-block}
+  .install-alt.hidden{display:none}
   @media(max-width:768px){
-    .install-section{padding:12px 0 24px}
-    .install-btn{padding:14px 24px;font-size:15px;width:100%;justify-content:center}
+    .install-card{flex-wrap:wrap;gap:12px;padding:14px 16px}
+    .install-card-actions{width:100%}
+    .install-btn{flex:1;justify-content:center;padding:12px 18px;font-size:14px}
+    .install-alt{font-size:10px;flex-wrap:wrap}
   }
 
   /* ===== MOBILE theme toggle ===== */
@@ -501,11 +536,31 @@
   <div class="tasks-wrap" id="tasks-wrap"></div>
 
   <!-- INSTALL -->
-  <div class="install-section">
-    <button class="install-btn" id="install-btn" style="display:none">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><polyline points="4 14 4 21 20 21 20 14"/></svg>
-      <span>تثبيت التطبيق على الجهاز</span>
-    </button>
+  <div class="install-section" id="install-section">
+    <div class="install-card" id="install-card">
+      <div class="install-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+          <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+          <path d="M12 18v-6"/>
+          <path d="M9 15l3 3 3-3"/>
+        </svg>
+      </div>
+      <div class="install-card-body">
+        <div class="install-card-title">نصب Flow على جهازك</div>
+        <div class="install-card-desc">وصول سريع من الشاشة الرئيسية مع إشعارات حتى لو التطبيق مقفول</div>
+      </div>
+      <div class="install-card-actions">
+        <button class="install-btn" id="install-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><polyline points="4 14 4 21 20 21 20 14"/></svg>
+          <span>تثبيت</span>
+        </button>
+        <button class="install-dismiss" id="install-dismiss" aria-label="إغلاق">✕</button>
+      </div>
+    </div>
+    <div class="install-alt" id="install-alt">
+      أو استخدم المتصفح: اضغط <code>⋮</code> ← <code>إضافة إلى الشاشة الرئيسية</code>
+    </div>
   </div>
 </main>
 <button class="theme-toggle mobile-only" id="theme-toggle-mobile">
@@ -930,21 +985,58 @@
   // ===== PWA INSTALL =====
   let pwaInstallEvent = null;
   const installBtn = $('install-btn');
+  const installCard = $('install-card');
+  const installSection = $('install-section');
+  const installDismiss = $('install-dismiss');
+  const installAlt = $('install-alt');
+
+  // Dismiss install card
+  installDismiss.addEventListener('click', () => {
+    installCard.classList.add('hidden');
+    installAlt.classList.add('hidden');
+  });
+
+  // Detect if we're already in standalone mode (installed PWA)
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    installCard.classList.add('hidden');
+    installAlt.classList.add('hidden');
+  }
+
+  // Native install event
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     pwaInstallEvent = e;
-    installBtn.style.display = 'flex';
+    installCard.classList.remove('hidden');
+    installAlt.classList.add('hidden');
   });
+
   installBtn.addEventListener('click', async () => {
-    if (!pwaInstallEvent) return;
-    pwaInstallEvent.prompt();
-    const result = await pwaInstallEvent.userChoice;
-    if (result.outcome === 'accepted') installBtn.style.display = 'none';
-    pwaInstallEvent = null;
+    if (pwaInstallEvent) {
+      pwaInstallEvent.prompt();
+      const result = await pwaInstallEvent.userChoice;
+      if (result.outcome === 'accepted') {
+        installCard.classList.add('hidden');
+        installAlt.classList.add('hidden');
+      }
+      pwaInstallEvent = null;
+    } else {
+      // Fallback: show manual instructions
+      installCard.classList.add('hidden');
+      installAlt.classList.remove('hidden');
+    }
   });
+
   window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
+    installCard.classList.add('hidden');
+    installAlt.classList.add('hidden');
   });
+
+  // Show manual install hint after 3s if no beforeinstallprompt fired (e.g. iOS)
+  setTimeout(() => {
+    if (!installCard.classList.contains('hidden') && !pwaInstallEvent) {
+      installAlt.classList.remove('hidden');
+    }
+  }, 3000);
 
   // ===== INIT =====
   if ('serviceWorker' in navigator) {
