@@ -947,6 +947,9 @@
   });
 
   // ===== INIT =====
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
   render();
   // Register push on load if we have tasks with times
   if (getDueTasks().length > 0) requestPushPermission();
