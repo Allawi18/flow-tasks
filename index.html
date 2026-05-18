@@ -135,7 +135,8 @@
   }
   .input-actions select option{background:var(--surface);color:var(--text)}
   .input-actions select:focus{border-color:var(--accent)}
-  .input-actions input[type=date]{
+  .input-actions input[type=date],
+  .input-actions input[type=time]{
     border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);
     border-radius:var(--radius-sm);padding:5px 8px;font-size:11px;cursor:pointer;
     font-family:inherit;outline:none;
@@ -283,7 +284,7 @@
     .input-bar{flex-direction:column;gap:8px;padding:8px 10px;margin:10px 0}
     .input-bar input{width:100%;font-size:14px}
     .input-actions{width:100%;display:flex;gap:6px}
-    .input-actions select,.input-actions input[type=date]{flex:1;font-size:11px;padding:6px 8px}
+    .input-actions select,.input-actions input[type=date],.input-actions input[type=time]{flex:1;font-size:11px;padding:6px 8px}
     .input-add-btn{flex:1;white-space:nowrap;font-size:12px}
 
     .tasks-wrap{padding-bottom:20px}
@@ -371,6 +372,7 @@
         <option value="high">🔴 عاجل</option>
       </select>
       <input type="date" id="due-date">
+      <input type="time" id="due-time">
       <button class="input-add-btn" onclick="addTask()">إضافة</button>
     </div>
   </div>
@@ -404,6 +406,7 @@
   const taskInput = $('task-input');
   const prioritySelect = $('priority-select');
   const dueDateInput = $('due-date');
+  const dueTimeInput = $('due-time');
   const mainTitle = $('main-title');
   const tagsList = $('tags-list');
   const themeIcon = $('theme-icon');
@@ -426,20 +429,28 @@
   window.addTask = function() {
     const text = taskInput.value.trim();
     if (!text) return;
+    const dateVal = dueDateInput.value || null;
+    const timeVal = dueTimeInput.value || null;
     tasks.push({
       id: Date.now() + Math.random(),
       text,
       done: false,
       pinned: false,
       priority: prioritySelect.value,
-      dueDate: dueDateInput.value || null,
+      dueDate: dateVal,
+      dueTime: timeVal,
+      dueDateTime: dateVal ? (timeVal ? dateVal + 'T' + timeVal : dateVal + 'T23:59') : null,
       tags: [],
+      notified30: false,
+      notified10: false,
       createdAt: Date.now()
     });
     taskInput.value = '';
     dueDateInput.value = '';
+    dueTimeInput.value = '';
     save();
     render();
+    if (timeVal) requestNotifPermission();
     requestAnimationFrame(() => {
       const last = wrap.querySelector('.task-card:last-child');
       if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -555,10 +566,12 @@
     }
 
     wrap.innerHTML = items.map(t => {
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const due = t.dueDate ? new Date(t.dueDate + 'T00:00:00') : null;
-      const overdue = due && due < today && !t.done;
-      const dueLabel = t.dueDate ? due.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' }) : '';
+      const now = new Date();
+      const dueDateTime = t.dueDateTime ? new Date(t.dueDateTime) : null;
+      const overdue = dueDateTime && dueDateTime < now && !t.done;
+      const dateLabel = t.dueDate ? new Date(t.dueDate + 'T00:00:00').toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' }) : '';
+      const timeLabel = t.dueTime || '';
+      const dueLabel = dateLabel + (timeLabel ? ' ' + timeLabel : '');
       const pClass = t.priority === 'high' ? 'priority-high' : t.priority === 'medium' ? 'priority-medium' : 'priority-low';
       const pLabel = t.priority === 'high' ? 'عاجل' : t.priority === 'medium' ? 'متوسط' : 'عادي';
 
@@ -571,7 +584,7 @@
             <div class="task-meta">
               <span class="task-priority ${pClass}">${pLabel}</span>
               ${(t.tags || []).map(tag => `<span class="task-tag">${tag}</span>`).join('')}
-              ${t.dueDate ? `<span class="task-due ${overdue ? 'overdue' : ''}">📅 ${dueLabel}${overdue ? ' (متأخر)' : ''}</span>` : ''}
+              ${t.dueDateTime ? `<span class="task-due ${overdue ? 'overdue' : ''}">⏰ ${dueLabel}${overdue ? ' (متأخر)' : ''}</span>` : ''}
             </div>
           </div>
           <div class="task-actions">
@@ -652,6 +665,48 @@
   }
 
   function focusInput() { taskInput.focus(); }
+
+  // ===== NOTIFICATIONS =====
+  function requestNotifPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
+  function sendNotif(title, body) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      try { new Notification(title, { body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>' }); } catch(e) {}
+    }
+  }
+
+  function checkNotifications() {
+    const now = Date.now();
+    tasks.forEach(t => {
+      if (t.done || !t.dueDateTime) return;
+      const dueMs = new Date(t.dueDateTime).getTime();
+      if (isNaN(dueMs)) return;
+
+      const diff30 = dueMs - 30 * 60 * 1000;
+      const diff10 = dueMs - 10 * 60 * 1000;
+
+      if (!t.notified30 && now >= diff30 && now < dueMs) {
+        t.notified30 = true;
+        sendNotif('⏰ تذكير بقرب المهمة', `متبقي ٣٠ دقيقة على: "${t.text}"`);
+        save();
+      }
+      if (!t.notified10 && now >= diff10 && now < dueMs) {
+        t.notified10 = true;
+        sendNotif('⏰ تذكير أخير', `متبقي ١٠ دقائق فقط على: "${t.text}"`);
+        save();
+      }
+    });
+  }
+
+  // Request permission & start checker
+  requestNotifPermission();
+  checkNotifications();
+  setInterval(checkNotifications, 30000);
 
   // ===== EVENT BINDING =====
   // Sidebar filters
