@@ -116,42 +116,63 @@
 
   /* INPUT BAR */
   .input-bar{
-    display:flex;align-items:center;gap:14px;margin:18px 0;
+    display:flex;align-items:stretch;gap:12px;margin:18px 0;
     background:var(--surface);border:1px solid var(--border);
-    border-radius:var(--radius);padding:12px 14px 12px 18px;
+    border-radius:var(--radius);padding:10px 12px;
     transition:all var(--transition);box-shadow:var(--shadow);
   }
   .input-bar:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
-  .input-bar input{
+  .input-bar .input-field{
     flex:1;border:none;background:none;outline:none;color:var(--text);
-    font-size:16px;font-family:inherit;
+    font-size:16px;font-family:inherit;padding:4px 2px;
   }
-  .input-bar input::placeholder{color:var(--text-muted)}
-  .input-actions{display:flex;align-items:center;gap:8px}
-  .input-actions select,
-  .input-actions input[type=date],
-  .input-actions input[type=time]{
+  .input-bar .input-field::placeholder{color:var(--text-muted)}
+  .input-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+  .input-group{
+    display:flex;flex-direction:column;gap:2px;position:relative;
+  }
+  .input-group label{
+    font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;
+    color:var(--text-muted);padding:0 4px;direction:ltr;text-align:center;
+  }
+  .input-group select,
+  .input-group input[type=date],
+  .input-group input[type=time]{
     border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);
-    border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;cursor:pointer;
+    border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;cursor:pointer;
     font-family:inherit;outline:none;transition:all var(--transition);
-    color-scheme:inherit;min-height:36px;
+    color-scheme:inherit;min-height:36px;min-width:0;width:100%;
+    -moz-appearance:none;-webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:left 6px center;background-size:14px;
+    padding-right:6px;padding-left:26px;text-align:right;
+    direction:ltr;
   }
-  .input-actions select option{background:var(--surface);color:var(--text)}
-  .input-actions select:hover,
-  .input-actions input[type=date]:hover,
-  .input-actions input[type=time]:hover{
+  .dark .input-group select,
+  .dark .input-group input[type=date],
+  .dark .input-group input[type=time]{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  }
+  .input-group select option{background:var(--surface);color:var(--text)}
+  .input-group select:hover,
+  .input-group input[type=date]:hover,
+  .input-group input[type=time]:hover{
     background:var(--border);color:var(--text);border-color:var(--text-muted);
   }
-  .input-actions select:focus,
-  .input-actions input[type=date]:focus,
-  .input-actions input[type=time]:focus{
+  .input-group select:focus,
+  .input-group input[type=date]:focus,
+  .input-group input[type=time]:focus{
     border-color:var(--accent);background:var(--surface);color:var(--text);
     box-shadow:0 0 0 3px var(--accent-soft);
   }
+  /* Date/time specific: show calendar/clock icon */
+  .input-group input[type=date]{min-width:130px}
+  .input-group input[type=time]{min-width:100px}
   .input-add-btn{
     background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);
-    padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;
-    transition:all var(--transition);font-family:inherit;min-height:36px;
+    padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;
+    transition:all var(--transition);font-family:inherit;min-height:36px;align-self:stretch;
+    display:flex;align-items:center;
   }
   .input-add-btn:hover{background:var(--accent-hover);transform:scale(1.02)}
 
@@ -288,11 +309,20 @@
     .search-box:focus-within input{width:100%;opacity:1}
     .add-btn{width:32px;height:32px;font-size:16px}
 
-    .input-bar{flex-direction:column;gap:8px;padding:8px 10px;margin:10px 0}
-    .input-bar input{width:100%;font-size:14px}
-    .input-actions{width:100%;display:flex;gap:6px}
-    .input-actions select,.input-actions input[type=date],.input-actions input[type=time]{flex:1;font-size:11px;padding:6px 8px}
-    .input-add-btn{flex:1;white-space:nowrap;font-size:12px}
+    .input-bar{flex-direction:column;gap:10px;padding:12px;margin:10px 0}
+    .input-bar .input-field{width:100%;font-size:16px;padding:8px 2px}
+    .input-actions{width:100%;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px}
+    .input-group{min-width:0}
+    .input-group label{font-size:10px;padding:0 2px 2px}
+    .input-group select,
+    .input-group input[type=date],
+    .input-group input[type=time]{
+      font-size:13px;padding:10px 8px 10px 24px;min-height:42px;min-width:0;
+      background-size:12px;background-position:left 4px center;
+    }
+    .input-group input[type=date]{min-width:0}
+    .input-group input[type=time]{min-width:0}
+    .input-add-btn{font-size:13px;padding:10px 12px;min-height:42px;white-space:nowrap}
 
     .tasks-wrap{padding-bottom:20px}
     .task-card{padding:10px 12px;gap:8px;margin-bottom:6px}
@@ -371,15 +401,24 @@
 
   <!-- INPUT -->
   <div class="input-bar">
-    <input type="text" id="task-input" placeholder="أضف مهمة جديدة...">
+    <input type="text" class="input-field" id="task-input" placeholder="أضف مهمة جديدة...">
     <div class="input-actions">
-      <select id="priority-select">
-        <option value="low">🟢 عادي</option>
-        <option value="medium" selected>🟡 متوسط</option>
-        <option value="high">🔴 عاجل</option>
-      </select>
-      <input type="date" id="due-date">
-      <input type="time" id="due-time">
+      <div class="input-group">
+        <label>الأولوية</label>
+        <select id="priority-select">
+          <option value="low">🟢 عادي</option>
+          <option value="medium" selected>🟡 متوسط</option>
+          <option value="high">🔴 عاجل</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>التاريخ</label>
+        <input type="date" id="due-date">
+      </div>
+      <div class="input-group">
+        <label>الوقت</label>
+        <input type="time" id="due-time">
+      </div>
       <button class="input-add-btn" onclick="addTask()">إضافة</button>
     </div>
   </div>
