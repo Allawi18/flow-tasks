@@ -244,15 +244,71 @@
     to{opacity:0;transform:translateX(-20px) scale(.95);height:0;margin:0;padding:0;border:0;overflow:hidden}
   }
 
-  /* RESPONSIVE */
+  /* ===== MOBILE theme toggle ===== */
+  .mobile-only{display:none}
+
   @media(max-width:768px){
-    .sidebar{width:60px;padding:14px 8px}
-    .sidebar .logo span,.sidebar .nav-item span:not(.icon),.nav-section,.theme-toggle span,.sidebar-stats{display:none}
-    .sidebar .nav-item{justify-content:center;padding:10px}
-    .main{padding:0 16px}
-    .search-box{width:140px}
-    .search-box:focus-within{width:180px}
-    .input-actions select,.input-actions input[type=date]{max-width:80px;font-size:10px}
+    body{flex-direction:column;padding-bottom:70px}
+    .sidebar{
+      position:fixed;bottom:0;left:0;right:0;top:auto;
+      width:100%;height:auto;padding:6px 0;z-index:100;
+      flex-direction:row;align-items:center;justify-content:space-around;
+      border-left:none;border-top:1px solid var(--border);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      background:rgba(248,249,251,.92)
+    }
+    .dark .sidebar{background:rgba(15,15,26,.92)}
+    .sidebar .logo,.sidebar .nav-section,.sidebar .theme-toggle,.sidebar-stats,.sidebar-spacer{display:none}
+    .sidebar .nav-item{flex-direction:column;padding:4px 6px;gap:2px;width:auto;border-radius:8px}
+    .sidebar .nav-item span:not(.icon){display:none}
+    .sidebar .nav-item .icon{font-size:20px;width:auto}
+    .sidebar .nav-item .badge{display:none}
+    .sidebar .nav-item.active{background:var(--accent-soft)}
+    .sidebar #tags-list{display:none}
+    #theme-toggle-desktop{display:none}
+    .mobile-only{display:flex}
+
+    .main{padding:0 12px;max-width:100%;margin:0}
+    .main-header{padding:14px 0 10px}
+    .main-header h1{font-size:18px}
+    .main-header-actions{gap:6px}
+    .main-header{position:relative}
+    .search-box{width:36px;padding:6px;border-radius:50%;overflow:hidden;transition:all .25s}
+    .search-box:focus-within{width:200px;border-radius:999px;padding:6px 14px;position:absolute;left:56px;z-index:50;box-shadow:var(--shadow-lg)}
+    .search-box .icon{font-size:16px}
+    .search-box input{width:0;opacity:0}
+    .search-box:focus-within input{width:100%;opacity:1}
+    .add-btn{width:32px;height:32px;font-size:16px}
+
+    .input-bar{flex-direction:column;gap:8px;padding:8px 10px;margin:10px 0}
+    .input-bar input{width:100%;font-size:14px}
+    .input-actions{width:100%;display:flex;gap:6px}
+    .input-actions select,.input-actions input[type=date]{flex:1;font-size:11px;padding:6px 8px}
+    .input-add-btn{flex:1;white-space:nowrap;font-size:12px}
+
+    .tasks-wrap{padding-bottom:20px}
+    .task-card{padding:10px 12px;gap:8px;margin-bottom:6px}
+    .task-card .drag-handle{display:none}
+    .task-text{font-size:13px}
+    .task-meta{gap:4px}
+    .task-priority{font-size:9px;padding:0 6px}
+    .task-actions{opacity:1}
+    .task-action-btn{width:28px;height:28px;font-size:14px}
+
+    .empty-state{padding:40px 20px}
+    .empty-state .icon{font-size:36px}
+    .empty-state h3{font-size:16px}
+
+    .mobile-only{
+      align-items:center;justify-content:center;
+      width:36px;height:36px;padding:0;
+      position:fixed;top:12px;left:12px;z-index:99;
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:50%;box-shadow:var(--shadow-lg);cursor:pointer;
+      transition:all var(--transition);font-size:16px;
+    }
+    .mobile-only:hover{background:var(--surface-hover)}
+    .mobile-only:active{transform:scale(.92)}
   }
 </style>
 </head>
@@ -281,7 +337,7 @@
 
   <div class="sidebar-spacer"></div>
 
-  <button class="theme-toggle">
+  <button class="theme-toggle" id="theme-toggle-desktop">
     <span class="icon" id="theme-icon">🌙</span><span id="theme-label">داكن</span>
   </button>
 
@@ -322,6 +378,9 @@
   <!-- TASKS -->
   <div class="tasks-wrap" id="tasks-wrap"></div>
 </main>
+<button class="theme-toggle mobile-only" id="theme-toggle-mobile">
+  <span class="icon" id="theme-icon-mobile">🌙</span>
+</button>
 
 <script>
 (function(){
@@ -430,8 +489,11 @@
   window.toggleTheme = function() {
     document.body.classList.toggle('dark');
     const isDark = document.body.classList.contains('dark');
-    themeIcon.textContent = isDark ? '☀️' : '🌙';
-    themeLabel.textContent = isDark ? 'فاتح' : 'داكن';
+    const icon = isDark ? '☀️' : '🌙';
+    const label = isDark ? 'فاتح' : 'داكن';
+    themeIcon.textContent = icon;
+    themeLabel.textContent = label;
+    document.getElementById('theme-icon-mobile').textContent = icon;
     try { localStorage.setItem('flow_theme', isDark ? 'dark' : 'light'); } catch(e) {}
   };
 
@@ -440,6 +502,7 @@
     document.body.classList.add('dark');
     themeIcon.textContent = '☀️';
     themeLabel.textContent = 'فاتح';
+    document.getElementById('theme-icon-mobile').textContent = '☀️';
   }
 
   // ===== FILTER LOGIC =====
@@ -596,8 +659,10 @@
     btn.addEventListener('click', () => setFilter(btn.dataset.filter));
   });
 
-  // Theme toggle
-  document.querySelector('.theme-toggle').addEventListener('click', window.toggleTheme);
+  // Theme toggle (desktop + mobile)
+  document.querySelectorAll('.theme-toggle, #theme-toggle-mobile').forEach(el => {
+    el.addEventListener('click', window.toggleTheme);
+  });
 
   // Add task
   $('add-btn')?.addEventListener('click', focusInput);
