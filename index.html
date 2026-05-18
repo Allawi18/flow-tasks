@@ -263,16 +263,16 @@
   <div class="logo"><div class="logo-dot"></div><span>Flow</span></div>
 
   <div class="nav-section">التنقل</div>
-  <button class="nav-item active" data-filter="all" onclick="setFilter('all')">
+  <button class="nav-item active" data-filter="all">
     <span class="icon">📋</span><span>الكل</span><span class="badge" id="badge-all">0</span>
   </button>
-  <button class="nav-item" data-filter="done" onclick="setFilter('done')">
+  <button class="nav-item" data-filter="done">
     <span class="icon">✅</span><span>المنجز</span><span class="badge" id="badge-done">0</span>
   </button>
-  <button class="nav-item" data-filter="not_done" onclick="setFilter('not_done')">
+  <button class="nav-item" data-filter="not_done">
     <span class="icon">⏳</span><span>غير المنجز</span><span class="badge" id="badge-not_done">0</span>
   </button>
-  <button class="nav-item" data-filter="pinned" onclick="setFilter('pinned')">
+  <button class="nav-item" data-filter="pinned">
     <span class="icon">📌</span><span>المثبت</span><span class="badge" id="badge-pinned">0</span>
   </button>
 
@@ -281,7 +281,7 @@
 
   <div class="sidebar-spacer"></div>
 
-  <button class="theme-toggle" onclick="toggleTheme()">
+  <button class="theme-toggle">
     <span class="icon" id="theme-icon">🌙</span><span id="theme-label">داكن</span>
   </button>
 
@@ -299,15 +299,15 @@
     <div class="main-header-actions">
       <div class="search-box">
         <span class="icon">🔍</span>
-        <input type="text" id="search" placeholder="بحث..." oninput="renderTasks()">
+        <input type="text" id="search" placeholder="بحث...">
       </div>
-      <button class="add-btn" onclick="focusInput()" title="إضافة مهمة">+</button>
+      <button class="add-btn" id="add-btn" title="إضافة مهمة">+</button>
     </div>
   </div>
 
   <!-- INPUT -->
   <div class="input-bar">
-    <input type="text" id="task-input" placeholder="أضف مهمة جديدة..." onkeydown="if(event.key==='Enter')addTask()">
+    <input type="text" id="task-input" placeholder="أضف مهمة جديدة...">
     <div class="input-actions">
       <select id="priority-select">
         <option value="low">🟢 عادي</option>
@@ -324,216 +324,292 @@
 </main>
 
 <script>
-// ===== STATE =====
-let tasks = JSON.parse(localStorage.getItem('flow_tasks') || '[]');
-let filter = 'all';
-let searchQuery = '';
-let tagFilter = null;
-let dragging = null;
-let dragOver = null;
+(function(){
+  // ===== STATE =====
+  let tasks = [];
+  try {
+    const saved = localStorage.getItem('flow_tasks');
+    tasks = saved ? JSON.parse(saved) : [];
+    if (!Array.isArray(tasks)) tasks = [];
+  } catch(e) { tasks = []; }
 
-// ===== PERSISTENCE =====
-function save(){localStorage.setItem('flow_tasks',JSON.stringify(tasks))}
+  let filter = 'all';
+  let tagFilter = null;
+  let dragging = null;
+  let dragOver = null;
 
-// ===== CRUD =====
-function addTask(){
-  const input=document.getElementById('task-input');
-  const text=input.value.trim();
-  if(!text) return;
-  const priority=document.getElementById('priority-select').value;
-  const dueDate=document.getElementById('due-date').value||null;
-  tasks.push({
-    id:Date.now()+Math.random(),text,done:false,pinned:false,
-    priority,dueDate,tags:[],createdAt:Date.now()
-  });
-  input.value='';document.getElementById('due-date').value='';
-  save();renderTasks();
-  setTimeout(()=>document.querySelector('.task-card:last-child')?.scrollIntoView({behavior:'smooth',block:'center'}),50);
-}
+  // ===== DOM REFS =====
+  const $ = id => document.getElementById(id);
+  const wrap = $('tasks-wrap');
+  const searchInput = $('search');
+  const taskInput = $('task-input');
+  const prioritySelect = $('priority-select');
+  const dueDateInput = $('due-date');
+  const mainTitle = $('main-title');
+  const tagsList = $('tags-list');
+  const themeIcon = $('theme-icon');
+  const themeLabel = $('theme-label');
 
-function toggleDone(id){
-  const t=tasks.find(x=>x.id===id);
-  if(t){t.done=!t.done;save();renderTasks()}
-}
+  const badgeAll = $('badge-all');
+  const badgeDone = $('badge-done');
+  const badgeNotDone = $('badge-not_done');
+  const badgePinned = $('badge-pinned');
+  const statTotal = $('stat-total');
+  const statDone = $('stat-done');
+  const statNotDone = $('stat-not-done');
 
-function togglePin(id){
-  const t=tasks.find(x=>x.id===id);
-  if(t){t.pinned=!t.pinned;save();renderTasks()}
-}
-
-function deleteTask(id){
-  const card=document.querySelector(`[data-id="${id}"]`);
-  if(card)card.classList.add('task-card-exit');
-  setTimeout(()=>{
-    tasks=tasks.filter(x=>x.id!==id);
-    save();renderTasks();
-  },250);
-}
-
-function setFilter(f){
-  filter=f;tagFilter=null;
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.filter===f));
-  document.getElementById('main-title').textContent={
-    all:'الكل',done:'المنجز',not_done:'غير المنجز',pinned:'المثبت'
-  }[f]||'الكل';
-  renderTasks();
-}
-
-function setTagFilter(tag){
-  tagFilter=tag;
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.querySelectorAll('.tag-nav-item').forEach(n=>n.classList.toggle('active',n.dataset.tag===tag));
-  document.getElementById('main-title').textContent=`#${tag}`;
-  renderTasks();
-}
-
-// ===== THEME =====
-function toggleTheme(){
-  document.body.classList.toggle('dark');
-  const isDark=document.body.classList.contains('dark');
-  document.getElementById('theme-icon').textContent=isDark?'☀️':'🌙';
-  document.getElementById('theme-label').textContent=isDark?'فاتح':'داكن';
-  localStorage.setItem('flow_theme',isDark?'dark':'light');
-}
-if(localStorage.getItem('flow_theme')==='dark'){document.body.classList.add('dark');
-  document.getElementById('theme-icon').textContent='☀️';document.getElementById('theme-label').textContent='فاتح';}
-
-// ===== FILTER LOGIC =====
-function filteredTasks(){
-  let result=[...tasks];
-  if(filter==='done')result=result.filter(t=>t.done);
-  else if(filter==='not_done')result=result.filter(t=>!t.done);
-  else if(filter==='pinned')result=result.filter(t=>t.pinned);
-  if(tagFilter)result=result.filter(t=>t.tags&&t.tags.includes(tagFilter));
-  if(searchQuery=document.getElementById('search').value.trim().toLowerCase()){
-    result=result.filter(t=>t.text.toLowerCase().includes(searchQuery));
-  }
-  return result.sort((a,b)=>b.pinned-a.pinned||a.createdAt-b.createdAt);
-}
-
-// ===== RENDER =====
-function renderTasks(){
-  const wrap=document.getElementById('tasks-wrap');
-  const items=filteredTasks();
-  const allTags=[...new Set(tasks.flatMap(t=>t.tags||[]))];
-
-  // Sidebar tags
-  const tagsList=document.getElementById('tags-list');
-  if(allTags.length){
-    tagsList.innerHTML=allTags.map(tag=>`
-      <button class="nav-item tag-nav-item" data-tag="${tag}" onclick="setTagFilter('${tag}')">
-        <span class="icon">🏷️</span><span>${tag}</span>
-      </button>
-    `).join('');
-  }else tagsList.innerHTML='<div style="font-size:11px;color:var(--text-muted);padding:4px 10px">لا توجد وسوم</div>';
-
-  // Badges
-  document.getElementById('badge-all').textContent=tasks.length;
-  document.getElementById('badge-done').textContent=tasks.filter(t=>t.done).length;
-  document.getElementById('badge-not_done').textContent=tasks.filter(t=>!t.done).length;
-  document.getElementById('badge-pinned').textContent=tasks.filter(t=>t.pinned).length;
-
-  // Stats
-  document.getElementById('stat-total').textContent=tasks.length;
-  document.getElementById('stat-done').textContent=tasks.filter(t=>t.done).length;
-  document.getElementById('stat-not-done').textContent=tasks.filter(t=>!t.done).length;
-
-  if(!items.length){
-    wrap.innerHTML=`
-      <div class="empty-state">
-        <div class="icon">✨</div>
-        <h3>لا توجد مهام</h3>
-        <p>${searchQuery?'لا نتائج للبحث':'أضف مهمة جديدة للبدء'}</p>
-      </div>`;
-    return;
+  // ===== PERSISTENCE =====
+  function save() {
+    try { localStorage.setItem('flow_tasks', JSON.stringify(tasks)); } catch(e) {}
   }
 
-  wrap.innerHTML=items.map(t=>{
-    const today=new Date();today.setHours(0,0,0,0);
-    const due=t.dueDate?new Date(t.dueDate+'T00:00:00'):null;
-    const overdue=due&&due<today&&!t.done;
-    const dueLabel=t.dueDate?new Date(t.dueDate+'T00:00:00').toLocaleDateString('ar-SA',{day:'numeric',month:'short'}):'';
-    const pClass=t.priority==='high'?'priority-high':t.priority==='medium'?'priority-medium':'priority-low';
-    const pLabel=t.priority==='high'?`عاجل`:t.priority==='medium'?`متوسط`:`عادي`;
+  // ===== CRUD =====
+  window.addTask = function() {
+    const text = taskInput.value.trim();
+    if (!text) return;
+    tasks.push({
+      id: Date.now() + Math.random(),
+      text,
+      done: false,
+      pinned: false,
+      priority: prioritySelect.value,
+      dueDate: dueDateInput.value || null,
+      tags: [],
+      createdAt: Date.now()
+    });
+    taskInput.value = '';
+    dueDateInput.value = '';
+    save();
+    render();
+    requestAnimationFrame(() => {
+      const last = wrap.querySelector('.task-card:last-child');
+      if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  };
 
-    return `
-      <div class="task-card ${t.done?'done':''} ${t.pinned?'pinned':''}" draggable="true" data-id="${t.id}"
-           ondragstart="dragStart(event,${t.id})" ondragover="dragOver(event,${t.id})" ondrop="drop(event,${t.id})"
-           ondragend="dragEnd()">
-        <span class="drag-handle" draggable="false">⠿</span>
-        <div class="task-check" onclick="toggleDone(${t.id})"></div>
-        <div class="task-content">
-          <div class="task-text">${t.text}</div>
-          <div class="task-meta">
-            <span class="task-priority ${pClass}">${pLabel}</span>
-            ${(t.tags||[]).map(tag=>`<span class="task-tag">${tag}</span>`).join('')}
-            ${t.dueDate?`<span class="task-due ${overdue?'overdue':''}">📅 ${dueLabel}${overdue?' (متأخر)':''}</span>`:''}
+  function toggleDone(id) {
+    const t = tasks.find(x => x.id === id);
+    if (t) { t.done = !t.done; save(); render(); }
+  }
+
+  function togglePin(id) {
+    const t = tasks.find(x => x.id === id);
+    if (t) { t.pinned = !t.pinned; save(); render(); }
+  }
+
+  function deleteTask(id) {
+    const card = wrap.querySelector(`[data-id="${id}"]`);
+    if (card) card.classList.add('task-card-exit');
+    setTimeout(() => {
+      tasks = tasks.filter(x => x.id !== id);
+      save(); render();
+    }, 250);
+  }
+
+  function setFilter(f) {
+    filter = f; tagFilter = null;
+    document.querySelectorAll('.nav-item').forEach(n =>
+      n.classList.toggle('active', n.dataset.filter === f)
+    );
+    const titles = { all: 'الكل', done: 'المنجز', not_done: 'غير المنجز', pinned: 'المثبت' };
+    mainTitle.textContent = titles[f] || 'الكل';
+    render();
+  }
+
+  function setTagFilter(tag) {
+    tagFilter = tag;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.tag-nav-item').forEach(n =>
+      n.classList.toggle('active', n.dataset.tag === tag)
+    );
+    mainTitle.textContent = '#' + tag;
+    render();
+  }
+
+  // ===== THEME =====
+  window.toggleTheme = function() {
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    themeIcon.textContent = isDark ? '☀️' : '🌙';
+    themeLabel.textContent = isDark ? 'فاتح' : 'داكن';
+    try { localStorage.setItem('flow_theme', isDark ? 'dark' : 'light'); } catch(e) {}
+  };
+
+  // Apply saved theme
+  if (localStorage.getItem('flow_theme') === 'dark') {
+    document.body.classList.add('dark');
+    themeIcon.textContent = '☀️';
+    themeLabel.textContent = 'فاتح';
+  }
+
+  // ===== FILTER LOGIC =====
+  function filteredTasks() {
+    let result = [...tasks];
+    if (filter === 'done') result = result.filter(t => t.done);
+    else if (filter === 'not_done') result = result.filter(t => !t.done);
+    else if (filter === 'pinned') result = result.filter(t => t.pinned);
+    if (tagFilter) result = result.filter(t => t.tags && t.tags.includes(tagFilter));
+    const sq = searchInput.value.trim().toLowerCase();
+    if (sq) result = result.filter(t => t.text.toLowerCase().includes(sq));
+    return result.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || a.createdAt - b.createdAt);
+  }
+
+  // ===== RENDER =====
+  function render() {
+    const items = filteredTasks();
+    const allTags = [...new Set(tasks.flatMap(t => t.tags || []))];
+
+    // Sidebar tags
+    if (allTags.length) {
+      tagsList.innerHTML = allTags.map(tag =>
+        `<button class="nav-item tag-nav-item" data-tag="${tag}"><span class="icon">🏷️</span><span>${tag}</span></button>`
+      ).join('');
+      tagsList.querySelectorAll('.tag-nav-item').forEach(btn => {
+        const tag = btn.dataset.tag;
+        btn.addEventListener('click', () => setTagFilter(tag));
+        if (tagFilter === tag) btn.classList.add('active');
+      });
+    } else {
+      tagsList.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 10px">لا توجد وسوم</div>';
+    }
+
+    // Badges & stats
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    const pinned = tasks.filter(t => t.pinned).length;
+    badgeAll.textContent = total;
+    badgeDone.textContent = done;
+    badgeNotDone.textContent = total - done;
+    badgePinned.textContent = pinned;
+    statTotal.textContent = total;
+    statDone.textContent = done;
+    statNotDone.textContent = total - done;
+
+    if (!items.length) {
+      wrap.innerHTML =
+        `<div class="empty-state"><div class="icon">✨</div><h3>لا توجد مهام</h3><p>${searchInput.value.trim() ? 'لا نتائج للبحث' : 'أضف مهمة جديدة للبدء'}</p></div>`;
+      return;
+    }
+
+    wrap.innerHTML = items.map(t => {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const due = t.dueDate ? new Date(t.dueDate + 'T00:00:00') : null;
+      const overdue = due && due < today && !t.done;
+      const dueLabel = t.dueDate ? due.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' }) : '';
+      const pClass = t.priority === 'high' ? 'priority-high' : t.priority === 'medium' ? 'priority-medium' : 'priority-low';
+      const pLabel = t.priority === 'high' ? 'عاجل' : t.priority === 'medium' ? 'متوسط' : 'عادي';
+
+      return `
+        <div class="task-card ${t.done ? 'done' : ''} ${t.pinned ? 'pinned' : ''}" draggable="true" data-id="${t.id}">
+          <span class="drag-handle" draggable="false">⠿</span>
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-text">${t.text}</div>
+            <div class="task-meta">
+              <span class="task-priority ${pClass}">${pLabel}</span>
+              ${(t.tags || []).map(tag => `<span class="task-tag">${tag}</span>`).join('')}
+              ${t.dueDate ? `<span class="task-due ${overdue ? 'overdue' : ''}">📅 ${dueLabel}${overdue ? ' (متأخر)' : ''}</span>` : ''}
+            </div>
           </div>
-        </div>
-        <div class="task-actions">
-          <button class="task-action-btn pin-btn ${t.pinned?'active':''}" onclick="togglePin(${t.id})" title="${t.pinned?'إلغاء التثبيت':'تثبيت'}">📌</button>
-          <button class="task-action-btn" onclick="promptTag(${t.id})" title="إضافة وسم">🏷️</button>
-          <button class="task-action-btn delete" onclick="deleteTask(${t.id})" title="حذف">🗑️</button>
-        </div>
-      </div>`;
-  }).join('');
-}
+          <div class="task-actions">
+            <button class="task-action-btn pin-btn ${t.pinned ? 'active' : ''}" data-action="pin">📌</button>
+            <button class="task-action-btn" data-action="tag">🏷️</button>
+            <button class="task-action-btn delete" data-action="delete">🗑️</button>
+          </div>
+        </div>`;
+    }).join('');
 
-// ===== DRAG & DROP =====
-function dragStart(e,id){
-  dragging=id;
-  e.target.classList.add('dragging');
-  e.dataTransfer.effectAllowed='move';
-  e.dataTransfer.setData('text/plain',id);
-}
+    // Attach event listeners (delegation)
+    wrap.querySelectorAll('.task-card').forEach(card => {
+      const id = Number(card.dataset.id);
 
-function dragOver(e,id){
-  e.preventDefault();
-  if(dragOver===id)return;
-  if(dragOver!==null){
-    const prev=document.querySelector(`[data-id="${dragOver}"]`);
-    if(prev)prev.classList.remove('drag-over');
+      // Drag events
+      card.addEventListener('dragstart', e => {
+        dragging = id;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(id));
+      });
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (dragOver === id) return;
+        if (dragOver !== null) {
+          const prev = wrap.querySelector(`[data-id="${dragOver}"]`);
+          if (prev) prev.classList.remove('drag-over');
+        }
+        dragOver = id;
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        if (dragging === null || dragging === id) return;
+        const fromIdx = tasks.findIndex(t => t.id === dragging);
+        const toIdx = tasks.findIndex(t => t.id === id);
+        if (fromIdx > -1 && toIdx > -1) {
+          const [moved] = tasks.splice(fromIdx, 1);
+          tasks.splice(toIdx, 0, moved);
+          save(); render();
+        }
+        document.querySelectorAll('.dragging,.drag-over').forEach(el => el.classList.remove('dragging', 'drag-over'));
+        dragging = null; dragOver = null;
+      });
+      card.addEventListener('dragend', () => {
+        document.querySelectorAll('.dragging,.drag-over').forEach(el => el.classList.remove('dragging', 'drag-over'));
+        dragging = null; dragOver = null;
+      });
+
+      // Checkbox toggle
+      card.querySelector('.task-check').addEventListener('click', () => toggleDone(id));
+
+      // Action buttons
+      card.querySelectorAll('.task-action-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          if (action === 'pin') togglePin(id);
+          else if (action === 'tag') promptTag(id);
+          else if (action === 'delete') deleteTask(id);
+        });
+      });
+    });
   }
-  dragOver=id;
-  e.target.closest('.task-card')?.classList.add('drag-over');
-}
 
-function drop(e,id){
-  e.preventDefault();
-  if(dragging===null||dragging===id)return;
-  const fromIdx=tasks.findIndex(t=>t.id===dragging);
-  const toIdx=tasks.findIndex(t=>t.id===id);
-  if(fromIdx>-1&&toIdx>-1){
-    const [moved]=tasks.splice(fromIdx,1);
-    tasks.splice(toIdx,0,moved);
-    save();renderTasks();
+  // ===== TAGS =====
+  function promptTag(id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    const tag = prompt('أدخل اسم الوسم:', (t.tags || [])[0] || '');
+    if (tag !== null) {
+      if (!t.tags) t.tags = [];
+      const idx = t.tags.indexOf(tag.trim());
+      if (idx > -1) t.tags.splice(idx, 1);
+      else t.tags = [tag.trim()];
+      save(); render();
+    }
   }
-  dragEnd();
-}
 
-function dragEnd(){
-  document.querySelectorAll('.dragging,.drag-over').forEach(el=>el.classList.remove('dragging','drag-over'));
-  dragging=null;dragOver=null;
-}
+  function focusInput() { taskInput.focus(); }
 
-// ===== TAGS =====
-function promptTag(id){
-  const t=tasks.find(x=>x.id===id);
-  if(!t)return;
-  const tag=prompt('أدخل اسم الوسم:',(t.tags||[])[0]||'');
-  if(tag!==null){
-    if(!t.tags)t.tags=[];
-    const idx=t.tags.indexOf(tag.trim());
-    if(idx>-1)t.tags.splice(idx,1);
-    else t.tags=[tag.trim()];
-    save();renderTasks();
-  }
-}
+  // ===== EVENT BINDING =====
+  // Sidebar filters
+  document.querySelectorAll('.nav-item[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+  });
 
-function focusInput(){document.getElementById('task-input').focus()}
+  // Theme toggle
+  document.querySelector('.theme-toggle').addEventListener('click', window.toggleTheme);
 
-// ===== INIT =====
-renderTasks();
+  // Add task
+  $('add-btn')?.addEventListener('click', focusInput);
+  document.querySelector('.input-add-btn').addEventListener('click', window.addTask);
+  taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.addTask(); });
+
+  // Search
+  searchInput.addEventListener('input', render);
+
+  // ===== INIT =====
+  render();
+})();
 </script>
 </body>
 </html>
