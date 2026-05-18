@@ -6,7 +6,7 @@
 <title>Flow — Task Manager</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  :root{
+  :root{color-scheme:light;
     --bg:#f8f9fb;--surface:#fff;--surface-hover:#f3f4f6;--sidebar:#f0f1f3;
     --border:#e9eaee;--border-light:#f0f1f3;
     --text:#1a1a2e;--text-secondary:#6b7280;--text-muted:#9ca3af;
@@ -19,7 +19,7 @@
     --radius:12px;--radius-sm:8px;--radius-full:999px;
     --transition:.2s cubic-bezier(.4,0,.2,1)
   }
-  .dark{--bg:#0f0f1a;--surface:#1a1a2e;--surface-hover:#232340;--sidebar:#151525;
+  .dark{--bg:#0f0f1a;--surface:#1a1a2e;--surface-hover:#232340;--sidebar:#151525;color-scheme:dark;
     --border:#2a2a45;--border-light:#1f1f35;
     --text:#e8e8f0;--text-secondary:#9ca3b8;--text-muted:#6b7280;
     --accent:#818cf8;--accent-hover:#6d78f0;--accent-soft:rgba(129,140,248,0.12);
@@ -116,37 +116,44 @@
 
   /* INPUT BAR */
   .input-bar{
-    display:flex;align-items:center;gap:12px;margin:18px 0;
+    display:flex;align-items:center;gap:14px;margin:18px 0;
     background:var(--surface);border:1px solid var(--border);
-    border-radius:var(--radius);padding:8px 12px 8px 16px;
+    border-radius:var(--radius);padding:12px 14px 12px 18px;
     transition:all var(--transition);box-shadow:var(--shadow);
   }
   .input-bar:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
   .input-bar input{
     flex:1;border:none;background:none;outline:none;color:var(--text);
-    font-size:14px;font-family:inherit;
+    font-size:16px;font-family:inherit;
   }
   .input-bar input::placeholder{color:var(--text-muted)}
-  .input-actions{display:flex;align-items:center;gap:6px}
-  .input-actions select{
-    border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);
-    border-radius:var(--radius-sm);padding:5px 8px;font-size:11px;cursor:pointer;
-    font-family:inherit;outline:none;transition:border var(--transition);
-  }
-  .input-actions select option{background:var(--surface);color:var(--text)}
-  .input-actions select:focus{border-color:var(--accent)}
+  .input-actions{display:flex;align-items:center;gap:8px}
+  .input-actions select,
   .input-actions input[type=date],
   .input-actions input[type=time]{
     border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);
-    border-radius:var(--radius-sm);padding:5px 8px;font-size:11px;cursor:pointer;
-    font-family:inherit;outline:none;
+    border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;cursor:pointer;
+    font-family:inherit;outline:none;transition:all var(--transition);
+    color-scheme:inherit;min-height:36px;
+  }
+  .input-actions select option{background:var(--surface);color:var(--text)}
+  .input-actions select:hover,
+  .input-actions input[type=date]:hover,
+  .input-actions input[type=time]:hover{
+    background:var(--border);color:var(--text);border-color:var(--text-muted);
+  }
+  .input-actions select:focus,
+  .input-actions input[type=date]:focus,
+  .input-actions input[type=time]:focus{
+    border-color:var(--accent);background:var(--surface);color:var(--text);
+    box-shadow:0 0 0 3px var(--accent-soft);
   }
   .input-add-btn{
     background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);
-    padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer;
-    transition:all var(--transition);font-family:inherit;
+    padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;
+    transition:all var(--transition);font-family:inherit;min-height:36px;
   }
-  .input-add-btn:hover{background:var(--accent-hover)}
+  .input-add-btn:hover{background:var(--accent-hover);transform:scale(1.02)}
 
   /* TASKS */
   .tasks-wrap{flex:1;overflow-y:auto;padding-bottom:60px;min-height:0}
