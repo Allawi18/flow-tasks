@@ -153,23 +153,38 @@
     padding-right:6px;padding-left:26px;text-align:right;
     direction:ltr;
   }
-  .priority-chip-group{
-    display:flex;gap:4px;direction:ltr;
+  .priority-dropdown{
+    position:relative;display:flex;direction:ltr;
   }
-  .priority-chip{
-    flex:1;border:1px solid var(--border);background:var(--surface-hover);
-    color:var(--text-secondary);border-radius:var(--radius-sm);
-    padding:8px 6px;font-size:11px;font-weight:500;cursor:pointer;
+  .priority-trigger{
+    display:flex;align-items:center;gap:6px;
+    border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);
+    border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-weight:500;cursor:pointer;
     font-family:inherit;transition:all var(--transition);
-    text-align:center;min-height:36px;white-space:nowrap;
+    min-height:36px;width:100%;white-space:nowrap;
   }
-  .priority-chip:hover{background:var(--border);color:var(--text);border-color:var(--text-muted)}
-  .priority-chip.active{
-    border-color:var(--accent);background:var(--accent-soft);color:var(--accent);
-    box-shadow:0 0 0 2px var(--accent-soft);transform:scale(1.02);
+  .priority-trigger:hover{background:var(--border);color:var(--text);border-color:var(--text-muted)}
+  .priority-trigger.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .priority-trigger .arrow{margin-right:auto;font-size:10px;opacity:.6}
+  .priority-menu{
+    position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);
+    overflow:hidden;display:none;
   }
-  .priority-chip[data-value="high"].active{border-color:var(--red);color:var(--red);background:var(--red-soft);box-shadow:0 0 0 2px var(--red-soft)}
-  .priority-chip[data-value="low"].active{border-color:var(--green);color:var(--green);background:var(--green-soft);box-shadow:0 0 0 2px var(--green-soft)}
+  .priority-menu.show{display:block;animation:dropIn .15s ease}
+  @keyframes dropIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .priority-option{
+    display:flex;align-items:center;gap:8px;width:100%;
+    padding:10px 12px;border:none;background:none;color:var(--text);
+    font-size:13px;cursor:pointer;font-family:inherit;transition:background var(--transition);
+  }
+  .priority-option:hover{background:var(--surface-hover)}
+  .priority-option.selected{background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .priority-option .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .priority-option .dot.high{background:var(--red)}
+  .priority-option .dot.medium{background:var(--amber)}
+  .priority-option .dot.low{background:var(--green)}
   .dark .input-group select,
   .dark .input-group input[type=date],
   .dark .input-group input[type=time]{
@@ -359,7 +374,8 @@
       font-size:13px;padding:10px 8px 10px 24px;min-height:42px;min-width:0;
       background-size:12px;background-position:left 4px center;
     }
-    .priority-chip{font-size:12px;padding:10px 4px;min-height:42px}
+    .priority-trigger{font-size:13px;padding:10px 8px;min-height:42px}
+    .priority-option{padding:12px;font-size:14px}
     .input-group input[type=date]{min-width:0}
     .input-group input[type=time]{min-width:0}
     .input-add-btn{font-size:13px;padding:10px 12px;min-height:42px;white-space:nowrap}
@@ -445,10 +461,23 @@
     <div class="input-actions">
       <div class="input-group">
         <label>الأولوية</label>
-        <div class="priority-chip-group" id="priority-group">
-          <button class="priority-chip" data-value="low" type="button">🟢 عادي</button>
-          <button class="priority-chip active" data-value="medium" type="button">🟡 متوسط</button>
-          <button class="priority-chip" data-value="high" type="button">🔴 عاجل</button>
+        <div class="priority-dropdown">
+          <button class="priority-trigger active" id="priority-trigger" type="button">
+            <span class="dot medium"></span>
+            <span id="priority-label">🟡 متوسط</span>
+            <span class="arrow">▾</span>
+          </button>
+          <div class="priority-menu" id="priority-menu">
+            <button class="priority-option" data-value="low">
+              <span class="dot low"></span> 🟢 عادي
+            </button>
+            <button class="priority-option selected" data-value="medium">
+              <span class="dot medium"></span> 🟡 متوسط
+            </button>
+            <button class="priority-option" data-value="high">
+              <span class="dot high"></span> 🔴 عاجل
+            </button>
+          </div>
         </div>
         <select id="priority-select" hidden>
           <option value="low">عادي</option>
@@ -504,7 +533,9 @@
   const searchInput = $('search');
   const taskInput = $('task-input');
   const prioritySelect = $('priority-select');
-  const priorityGroup = $('priority-group');
+  const priorityTrigger = $('priority-trigger');
+  const priorityMenu = $('priority-menu');
+  const priorityLabel = $('priority-label');
   const dueDateInput = $('due-date');
   const dueTimeInput = $('due-time');
   const mainTitle = $('main-title');
@@ -541,8 +572,8 @@
       dueTime: timeVal,
       dueDateTime: dateVal ? (timeVal ? dateVal + 'T' + timeVal : dateVal + 'T23:59') : null,
       tags: [],
-      notified30: false,
-      notified10: false,
+      _notified30: false,
+      _notified10: false,
       createdAt: Date.now()
     });
     taskInput.value = '';
@@ -823,6 +854,27 @@
     return arr;
   }
 
+  // ===== LOCAL NOTIFICATIONS (backup while page open) =====
+  function checkLocalNotifications() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = Date.now();
+    tasks.filter(t => !t.done && t.dueDateTime).forEach(t => {
+      const dueMs = new Date(t.dueDateTime).getTime();
+      if (isNaN(dueMs)) return;
+      if (!t._notified30 && now >= dueMs - 1800000 && now < dueMs) {
+        t._notified30 = true;
+        try { new Notification('⏰ تذكير بقرب المهمة', { body: 'متبقي ٣٠ دقيقة: "' + t.text + '"', icon: 'icon-192.png' }); } catch(e) {}
+        save();
+      }
+      if (!t._notified10 && now >= dueMs - 600000 && now < dueMs) {
+        t._notified10 = true;
+        try { new Notification('⏰ تذكير أخير', { body: 'متبقي ١٠ دقائق فقط: "' + t.text + '"', icon: 'icon-192.png' }); } catch(e) {}
+        save();
+      }
+    });
+  }
+  setInterval(checkLocalNotifications, 15000);
+
   // Register push and sync when tasks change
   let syncTimeout;
   function scheduleSync() {
@@ -855,14 +907,22 @@
   document.querySelector('.input-add-btn').addEventListener('click', window.addTask);
   taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.addTask(); });
 
-  // Priority chips
-  priorityGroup.querySelectorAll('.priority-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      priorityGroup.querySelectorAll('.priority-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      prioritySelect.value = chip.dataset.value;
+  // Priority dropdown
+  priorityTrigger.addEventListener('click', e => {
+    e.stopPropagation();
+    priorityMenu.classList.toggle('show');
+  });
+  priorityMenu.querySelectorAll('.priority-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const val = opt.dataset.value;
+      prioritySelect.value = val;
+      priorityLabel.textContent = opt.textContent.trim();
+      priorityMenu.querySelectorAll('.priority-option').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      priorityMenu.classList.remove('show');
     });
   });
+  document.addEventListener('click', () => priorityMenu.classList.remove('show'));
 
   // Search
   searchInput.addEventListener('input', render);

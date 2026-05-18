@@ -1,0 +1,3 @@
+deploy_prep.py
+deploy_worker.py
+worker/check_routes.py

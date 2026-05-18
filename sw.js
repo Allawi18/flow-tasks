@@ -1,6 +1,6 @@
 const CACHE = 'flow-v2';
 const URLS = ['/flow-tasks/','/flow-tasks/index.html','/flow-tasks/manifest.json','/flow-tasks/icon-192.png','/flow-tasks/icon-512.png'];
-const PUSH_SERVER = 'https://flow-push-worker.allawi18.workers.dev';
+const PUSH_SERVER = 'https://flow-push.3laa337.workers.dev';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS)).then(() => self.skipWaiting()));
