@@ -1,4 +1,4 @@
-const CACHE = 'flow-v1';
+const CACHE = 'flow-v2';
 const URLS = [
   '/flow-tasks/',
   '/flow-tasks/index.html',
@@ -23,4 +23,24 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).catch(() => r))
   );
+});
+
+// ===== PUSH NOTIFICATIONS =====
+self.addEventListener('push', e => {
+  if (!e.data) return;
+  try {
+    const data = e.data.json();
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/flow-tasks/icon-192.png',
+      badge: '/flow-tasks/icon-192.png',
+      vibrate: [200, 100, 200],
+      requireInteraction: true
+    });
+  } catch(e) {}
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow('/flow-tasks/'));
 });

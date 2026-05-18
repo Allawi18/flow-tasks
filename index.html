@@ -547,7 +547,7 @@
     dueTimeInput.value = '';
     save();
     render();
-    if (timeVal) requestNotifPermission();
+    if (timeVal || dateVal) requestPushPermission();
     requestAnimationFrame(() => {
       const last = wrap.querySelector('.task-card:last-child');
       if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -763,46 +763,77 @@
 
   function focusInput() { taskInput.focus(); }
 
-  // ===== NOTIFICATIONS =====
-  function requestNotifPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(function(){});
+  // ===== PUSH NOTIFICATIONS (via server) =====
+  const PUSH_SERVER = 'https://flow-push.onrender.com';
+  let deviceId = localStorage.getItem('flow_device_id');
+
+  function getDueTasks() {
+    return tasks.filter(t => !t.done && t.dueDateTime);
+  }
+
+  async function requestPushPermission() {
+    if (!('Notification' in window) || !('PushManager' in window)) return;
+    if (Notification.permission === 'default') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return;
     }
-  }
+    if (Notification.permission !== 'granted' || deviceId) return;
 
-  function sendNotif(title, body) {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') {
-      try { new Notification(title, { body }); } catch(e) { console.error(e); }
-    }
-  }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array('BJtLYIFh3zdZdi23L3h0ZdMN4nEh8m0wmTWT8zrX0RfMTUA9XSk718tp972Nwomk8ty2McuOTNdCytfc1b9J7vU')
+      });
 
-  function checkNotifications() {
-    const now = Date.now();
-    tasks.forEach(t => {
-      if (t.done || !t.dueDateTime) return;
-      const dueMs = new Date(t.dueDateTime).getTime();
-      if (isNaN(dueMs)) return;
-
-      const diff30 = dueMs - 30 * 60 * 1000;
-      const diff10 = dueMs - 10 * 60 * 1000;
-
-      if (!t.notified30 && now >= diff30 && now < dueMs) {
-        t.notified30 = true;
-        sendNotif('⏰ تذكير بقرب المهمة', 'متبقي ٣٠ دقيقة على: "' + t.text + '"');
-        save();
+      const res = await fetch(PUSH_SERVER + '/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() })
+      });
+      const data = await res.json();
+      if (data.deviceId) {
+        deviceId = data.deviceId;
+        localStorage.setItem('flow_device_id', deviceId);
       }
-      if (!t.notified10 && now >= diff10 && now < dueMs) {
-        t.notified10 = true;
-        sendNotif('⏰ تذكير أخير', 'متبقي ١٠ دقائق فقط على: "' + t.text + '"');
-        save();
-      }
-    });
+    } catch(e) { console.error('Push registration failed:', e); }
   }
 
-  // Start notification checker
-  checkNotifications();
-  setInterval(checkNotifications, 30000);
+  async function syncTasksWithServer() {
+    if (!deviceId) return;
+    const dueTasks = getDueTasks().map(t => ({ id: t.id, text: t.text, dueDateTime: t.dueDateTime }));
+    try {
+      await fetch(PUSH_SERVER + '/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId, tasks: dueTasks })
+      });
+    } catch(e) { /* server might be sleeping */ }
+  }
+
+  function urlB64ToUint8Array(b64) {
+    const padding = '='.repeat((4 - b64.length % 4) % 4);
+    const data = atob((b64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
+    const arr = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) arr[i] = data.charCodeAt(i);
+    return arr;
+  }
+
+  // Register push and sync when tasks change
+  let syncTimeout;
+  function scheduleSync() {
+    clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => {
+      syncTasksWithServer();
+    }, 2000);
+  }
+
+  // Override save to also sync
+  const originalSave = save;
+  save = function() {
+    originalSave();
+    scheduleSync();
+  };
 
   // ===== EVENT BINDING =====
   // Sidebar filters
@@ -844,6 +875,8 @@
 
   // ===== INIT =====
   render();
+  // Register push on load if we have tasks with times
+  if (getDueTasks().length > 0) requestPushPermission();
 })();
 </script>
 </body>
