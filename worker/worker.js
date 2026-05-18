@@ -1,5 +1,6 @@
 var VAPID_PUBLIC = 'BJtLYIFh3zdZdi23L3h0ZdMN4nEh8m0wmTWT8zrX0RfMTUA9XSk718tp972Nwomk8ty2McuOTNdCytfc1b9J7vU';
 var VAPID_PRIVATE = 'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgBHqbqimGJ_S234mpXJAUufhhEewf1LFcU23gpY8YvRahRANCAASbS2CBYd83WXYtty94dGXTDeJxIfJtMJk1k_M619EXzE1APV0pO9fLafe9jcKJpPLctjHLjkzXQsrX3NW_Se71';
+var ADMIN_PASS = (typeof ADMIN_PASSWORD !== 'undefined') ? ADMIN_PASSWORD : null;
 
 function hash(str) {
   var h = 0;
@@ -99,6 +100,24 @@ async function handleRequest(request) {
         checked++;
       }
       return new Response(JSON.stringify({ ok: true, checked: checked }), { headers: cors });
+    }
+
+    if (url.pathname === '/admin/stats') {
+      var pass = url.searchParams.get('password');
+      if (!pass || pass !== ADMIN_PASS) return new Response('Unauthorized', { status: 401, headers: cors });
+      var subList = await kv.list({ prefix: 'sub:' });
+      var idList = await kv.list({ prefix: 'id:' });
+      var devices = [];
+      for (var i = 0; i < idList.keys.length; i++) {
+        var deviceId = await kv.get(idList.keys[i].name);
+        var subHash = idList.keys[i].name.replace('id:', '');
+        var tasksRaw = await kv.get('tasks:' + subHash);
+        var taskCount = 0;
+        try { taskCount = JSON.parse(tasksRaw || '[]').length; } catch(e) {}
+        devices.push({ deviceId: deviceId, tasks: taskCount });
+      }
+      var now = new Date().toISOString();
+      return new Response(JSON.stringify({ ok: true, totalDevices: subList.keys.length, devices: devices, now: now, version: '2.0' }), { headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } });
     }
 
     return new Response('Not found', { status: 404, headers: cors });

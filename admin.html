@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow — Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface-hover:#232340;--border:#2a2a45;--text:#e8e8f0;--text-secondary:#9ca3b8;--text-muted:#6b7280;--accent:#818cf8;--accent-hover:#6d78f0;--accent-soft:rgba(129,140,248,0.12);--green:#4ade80;--red:#f87171;--shadow:0 4px 24px rgba(0,0,0,.4);--radius:12px;--radius-sm:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,'Noto Sans Arabic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-screen{width:100%;max-width:400px;padding:20px}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px 32px;box-shadow:var(--shadow)}
+.login-box h1{font-size:24px;margin-bottom:6px;text-align:center}
+.login-box p{color:var(--text-secondary);font-size:13px;margin-bottom:24px;text-align:center}
+.login-box input{width:100%;border:1px solid var(--border);background:var(--surface-hover);color:var(--text);border-radius:var(--radius-sm);padding:14px 16px;font-size:15px;font-family:inherit;outline:none;transition:all .2s;margin-bottom:16px}
+.login-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.login-box button{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.login-box button:hover{background:var(--accent-hover)}
+.login-box button:disabled{opacity:.5;cursor:not-allowed}
+.login-box .error{color:var(--red);font-size:13px;margin-top:8px;display:none}
+.dashboard{display:none;width:100%;max-width:800px;padding:20px}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.dash-header h1{font-size:22px}
+.dash-header button{background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);border-radius:var(--radius-sm);padding:10px 18px;cursor:pointer;font-family:inherit;font-size:13px;transition:all .2s}
+.dash-header button:hover{background:var(--surface-hover);color:var(--text)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+.stat-card .num{font-size:32px;font-weight:700;color:var(--accent)}
+.stat-card .label{font-size:12px;color:var(--text-muted);margin-top:4px}
+.devices-section h2{font-size:16px;color:var(--text-secondary);margin-bottom:12px}
+.device-list{display:flex;flex-direction:column;gap:8px}
+.device-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
+.device-item .id{font-size:13px;color:var(--text);font-family:monospace;direction:ltr}
+.device-item .tasks{font-size:12px;color:var(--text-muted)}
+.device-item .badge{font-size:11px;background:var(--accent-soft);color:var(--accent);padding:2px 10px;border-radius:99px}
+.empty-devices{text-align:center;color:var(--text-muted);padding:40px;font-size:14px}
+.last-update{text-align:center;font-size:11px;color:var(--text-muted);margin-top:24px}
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .dash-header h1{font-size:18px}
+  .dashboard{padding:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>🔐 لوحة التحكم</h1>
+    <p>لوحة إدارة تطبيق Flow — أدخل كلمة السر للدخول</p>
+    <input type="password" id="passwordInput" placeholder="كلمة السر" autocomplete="off">
+    <button id="loginBtn">دخول</button>
+    <div class="error" id="errorMsg">كلمة السر خطأ</div>
+  </div>
+</div>
+
+<div class="dashboard" id="dashboard">
+  <div class="dash-header">
+    <h1>📊 لوحة التحكم</h1>
+    <button id="logoutBtn">تسجيل خروج</button>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="num" id="statDevices">0</div><div class="label">الأجهزة المسجلة</div></div>
+    <div class="stat-card"><div class="num" id="statTasks">0</div><div class="label">إجمالي المهام</div></div>
+  </div>
+  <div class="devices-section">
+    <h2>📱 الأجهزة النشطة</h2>
+    <div class="device-list" id="deviceList"></div>
+  </div>
+  <div class="last-update" id="lastUpdate"></div>
+</div>
+
+<script>
+const PUSH_SERVER = 'https://flow-push.3laa337.workers.dev';
+const loginScreen = document.getElementById('loginScreen');
+const dashboard = document.getElementById('dashboard');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn = document.getElementById('loginBtn');
+const errorMsg = document.getElementById('errorMsg');
+const logoutBtn = document.getElementById('logoutBtn');
+const statDevices = document.getElementById('statDevices');
+const statTasks = document.getElementById('statTasks');
+const deviceList = document.getElementById('deviceList');
+const lastUpdate = document.getElementById('lastUpdate');
+
+let currentPassword = '';
+
+loginBtn.addEventListener('click', login);
+passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  var pass = passwordInput.value.trim();
+  if (!pass) return;
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'جاري التحقق...';
+  errorMsg.style.display = 'none';
+  try {
+    var resp = await fetch(PUSH_SERVER + '/admin/stats?password=' + encodeURIComponent(pass));
+    if (!resp.ok) throw new Error('unauthorized');
+    var data = await resp.json();
+    if (!data.ok) throw new Error('unauthorized');
+    currentPassword = pass;
+    showDashboard(data);
+  } catch(e) {
+    errorMsg.style.display = 'block';
+    passwordInput.value = '';
+    passwordInput.focus();
+  }
+  loginBtn.disabled = false;
+  loginBtn.textContent = 'دخول';
+}
+
+function showDashboard(data) {
+  loginScreen.style.display = 'none';
+  dashboard.style.display = 'block';
+  statDevices.textContent = data.totalDevices;
+  var totalTasks = 0;
+  data.devices.forEach(d => totalTasks += d.tasks);
+  statTasks.textContent = totalTasks;
+  if (data.devices.length === 0) {
+    deviceList.innerHTML = '<div class="empty-devices">لا توجد أجهزة مسجلة بعد</div>';
+  } else {
+    deviceList.innerHTML = data.devices.map(d =>
+      '<div class="device-item"><span class="id">' + d.deviceId.slice(0,12) + '...</span><span class="tasks">' + d.tasks + ' مهام</span><span class="badge">نشط</span></div>'
+    ).join('');
+  }
+  lastUpdate.textContent = 'آخر تحديث: ' + new Date(data.now).toLocaleString('ar-IQ');
+}
+
+logoutBtn.addEventListener('click', () => {
+  dashboard.style.display = 'none';
+  loginScreen.style.display = 'block';
+  passwordInput.value = '';
+  loginBtn.textContent = 'دخول';
+  currentPassword = '';
+});
+</script>
+</body>
+</html>
